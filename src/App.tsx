@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Layout from './pages/Layout';
@@ -26,7 +26,7 @@ function Root() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="/" element={<Root />}>
             <Route index element={<Navigate to="/expenses" replace />} />
@@ -38,7 +38,7 @@ export default function App() {
             <Route path="category/:id" element={<CategoryDetail />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </AuthProvider>
   );
 }
