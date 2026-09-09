@@ -44,6 +44,8 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 h1 {
@@ -62,9 +64,10 @@ h1 {
 .app-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100svh;
+  height: 100%;
   max-width: 720px;
   margin: 0 auto;
+  overflow: hidden;
 }
 
 .topbar {
@@ -75,9 +78,7 @@ h1 {
   padding: 14px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  flex-shrink: 0;
 }
 
 .app-title {
@@ -99,7 +100,9 @@ h1 {
 .content {
   flex: 1;
   padding: 16px;
-  padding-bottom: 88px; /* место под мобильную панель вкладок */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* ── Панель вкладок ─────────────────────────────────── */
@@ -108,13 +111,9 @@ h1 {
   display: flex;
   background: var(--surface);
   border-top: 1px solid var(--border);
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
   justify-content: space-around;
   padding-bottom: env(safe-area-inset-bottom);
-  z-index: 10;
+  flex-shrink: 0;
 }
 
 .tab {
@@ -142,21 +141,6 @@ h1 {
   transform: translateY(-1px);
 }
 
-/* На десктопе панель вкладок — сверху, без фиксации снизу */
-@media (min-width: 768px) {
-  .tabbar {
-    position: static;
-    border-top: none;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 0;
-    width: 100%;
-  }
-
-  .content {
-    padding-bottom: 16px;
-  }
-}
-
 /* ── Формы и кнопки ─────────────────────────────────── */
 
 label {
@@ -174,7 +158,7 @@ select {
   border-radius: 10px;
   background: var(--surface);
   color: var(--text);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 input:focus,

@@ -27,6 +27,10 @@ export default function Layout() {
         </div>
       </header>
 
+      <main className="content">
+        <Outlet />
+      </main>
+
       <nav className="tabbar">
         {TABS.map((tab) => (
           <NavLink
@@ -39,10 +43,6 @@ export default function Layout() {
           </NavLink>
         ))}
       </nav>
-
-      <main className="content">
-        <Outlet />
-      </main>
     </div>
   );
 }
