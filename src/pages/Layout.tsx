@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const TABS = [
@@ -18,6 +18,9 @@ export default function Layout() {
         <span className="app-title">Finansy</span>
         <div className="topbar-right">
           <span className="user-email">{user?.email}</span>
+          <Link to="/settings" className="icon-btn" aria-label="Настройки">
+            ⚙️
+          </Link>
           <button className="btn-ghost" onClick={signOut}>
             Выйти
           </button>
