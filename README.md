@@ -1,71 +1,86 @@
-# Finansy — веб-версия
+# Finansy
 
-Веб-версия приложения учёта расходов и доходов (порт iOS-приложения Finansy).
-Стек: **React 19 + TypeScript + Vite**, бэкенд и БД — **Supabase** (Postgres + Auth + RLS).
+Веб-версия приложения для учёта расходов и доходов — порт iOS-приложения Finansy.
 
-Формат использования: PWA (ставится на домашний экран iPhone) + обычный сайт в браузере.
-Единый общий аккаунт (данные видят одни и те же у автора и его жены).
+Личный семейный трекер: автор и его жена используют **один общий аккаунт** и видят одни и те же данные. Работает как **PWA** — ставится на домашний экран iPhone как обычное приложение (без App Store и без 7-дневной переустановки), а также открывается как обычный сайт в браузере.
 
-## Быстрый старт (локально)
+## Возможности
+
+- Расходы и доходы по дням (навигация по дате, «Бесплатный день!», быстрые суммы)
+- Категории (свои эмодзи и цвет, порядок, сортировка)
+- Месячные лимиты по категориям с прогрессом и подсветкой превышения
+- Статистика: периоды (неделя/месяц/год/свой), разбивка по категориям и источникам, график со шкалой, детализация
+- Светлая/тёмная тема, импорт/экспорт данных (совместимо с бэкапом iOS-приложения)
+- Локальный кеш — приложение открывается мгновенно, данные докачиваются в фоне
+
+## Стек
+
+**React 19 + TypeScript + Vite**, бэкенд и БД — **Supabase** (Postgres + Auth + Row Level Security). Внешних зависимостей, кроме `@supabase/supabase-js` и `react-router-dom`, нет.
+
+## Как развернуть для себя
+
+Нужны: [Node.js](https://nodejs.org) и бесплатный аккаунт [Supabase](https://supabase.com).
+
+### 1. Supabase
+
+1. Создай проект на [supabase.com](https://supabase.com).
+2. В **SQL Editor** выполни целиком [`supabase/schema.sql`](./supabase/schema.sql) — он создаст таблицы, индексы и RLS.
+3. Отключи публичную регистрацию: *Authentication → Sign In / Providers → Email* — в приложении есть только вход (`signInWithPassword`), метода `signUp` нет, поэтому зарегистрироваться через сайт невозможно.
+4. Создай аккаунт: *Authentication → Users → Add user → Create new user* (email + пароль).
+5. Скопируй ключи: *Project Settings → API* → `Project URL` и `publishable` key.
+
+### 2. Запуск локально
 
 ```bash
 npm install
-cp .env.example .env.local   # и подставь значения из Supabase
-npm run dev
+cp .env.example .env.local
 ```
 
-Приложение откроется на `http://localhost:5173`.
-
-## Подключение Supabase
-
-1. Создай бесплатный проект на [supabase.com](https://supabase.com).
-2. Открой **SQL Editor** и выполни целиком файл [`supabase/schema.sql`](./supabase/schema.sql) —
-   он создаст таблицы, индексы и Row Level Security.
-3. **Отключи публичную регистрацию** (чтобы посторонние не могли завести аккаунт):
-   *Authentication → Sign In / Providers → Email → отключи "Enable email confirmations" по желанию,
-   а главное — не давай клиенту метод `signUp`. В этом приложении есть только вход (`signInWithPassword`),
-   поэтому зарегистрироваться через сайт нельзя.*
-4. Создай общий аккаунт: *Authentication → Users → Add user → Create new user* (email + пароль).
-5. Скопируй ключи: *Project Settings → API* → `Project URL` и `publishable` key
-   (раньше назывался anon key).
-6. Вставь их в `.env.local`:
+Заполни `.env.local`:
 
 ```
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-## Безопасность
+```bash
+npm run dev
+```
 
-- Все таблицы под **Row Level Security**: `auth.uid() = user_id`, то есть каждый запрос
-  возвращает только данные текущего авторизованного пользователя.
-- Пароли хранятся хэшем (Supabase Auth), не в открытом виде.
-- Регистрация через клиент не предусмотрена — аккаунт создаётся только вручную в дашборде Supabase.
+Приложение откроется на `http://localhost:5173`.
 
-## Деплой
+### 3. Деплой
 
-Фронт — статический, его можно хостить бесплатно:
+Фронт — статический, хостится бесплатно:
 
 - **Cloudflare Pages**: build command `npm run build`, output dir `dist`.
-- **Vercel** / **Netlify**: аналогично.
+- **Vercel** / **Netlify** — аналогично.
 
-Переменные окружения (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`) задаются в настройках хостинга.
+Переменные окружения (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`) задаются в настройках хостинга. На iPhone: открыть URL в Safari → «Поделиться» → «На экран „Домой“».
+
+## Безопасность
+
+- Все таблицы под **Row Level Security** (`auth.uid() = user_id`) — каждый запрос возвращает только данные авторизованного пользователя.
+- Пароли хранятся хэшем (Supabase Auth), не в открытом виде.
+- Регистрация через клиент не предусмотрена — аккаунт создаётся вручную в дашборде Supabase.
+- `publishable` ключ безопасно хранить на клиенте; `secret` ключ на клиенте не используется.
+
+## Перенос данных из iOS-приложения
+
+Настройки → **Экспорт** в iOS-приложении → сохрани JSON → на сайте: ⚙️ → **Импорт (JSON)**. Импорт поддерживает формат бэкапа iOS-приложения (заменяет текущие данные).
 
 ## Структура
 
 ```
 src/
-├── lib/supabase.ts          # клиент Supabase
-├── context/AuthContext.tsx  # авторизация (сессия, вход/выход)
-├── types.ts                 # модели данных (Category, Expense, Income, Budget)
-└── pages/                   # экраны: Login, Layout (вкладки), Expenses, Income, Stats, Budgets, Categories
-supabase/schema.sql          # SQL-схема: таблицы + RLS + индексы
+├── components/   # формы (ExpenseForm, IncomeForm, CategoryForm, BudgetForm) и Modal
+├── context/      # AuthContext (авторизация), ThemeContext (тема)
+├── hooks/        # useCachedData (локальный кеш + фоновая сверка)
+├── lib/          # supabase, api (CRUD + пагинация), backup, cache, dates, periods
+├── pages/        # экраны: Login, Layout, Expenses, Income, Stats, Budgets, Categories,
+│                 #          CategoryDetail, IncomeSourceDetail, Settings
+├── types.ts      # модели данных (Category, Expense, Income, CategoryBudget)
+├── App.tsx       # роутер
+└── main.tsx
+supabase/schema.sql   # SQL-схема: таблицы + RLS + индексы
 ```
-
-## Статус
-
-- [x] Каркас: авторизация (единый аккаунт), навигация по вкладкам
-- [ ] CRUD расходов / доходов / категорий / бюджетов
-- [ ] Статистика и графики
-- [ ] PWA (manifest, service worker, «На экран Домой»)
-- [ ] Импорт данных из iOS-приложения
