@@ -1,16 +1,18 @@
 :root {
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --bg: #f4f5f7;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --accent-bg: rgba(99, 102, 241, 0.12);
+  --bg: #f5f6fb;
   --surface: #ffffff;
   --text: #1c1c1e;
-  --text-muted: #6b7280;
-  --border: #e5e7eb;
-  --danger: #dc2626;
+  --text-muted: #8a8f9c;
+  --border: #eceef3;
+  --danger: #ef4444;
   --danger-bg: #fef2f2;
-  --success: #16a34a;
-  --radius: 14px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --success: #22c55e;
+  --radius: 18px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 32px rgba(16, 24, 40, 0.08);
 
   color-scheme: light;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -19,6 +21,10 @@
 }
 
 :root[data-theme='dark'] {
+  --accent: #818cf8;
+  --accent-hover: #6366f1;
+  --accent-gradient: linear-gradient(135deg, #818cf8, #a78bfa);
+  --accent-bg: rgba(129, 140, 248, 0.16);
   --bg: #0f1115;
   --surface: #1a1d24;
   --text: #f3f4f6;
@@ -159,6 +165,9 @@ h1 {
 .tab-icon {
   font-size: 20px;
   line-height: 1;
+  padding: 4px 12px;
+  border-radius: 12px;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .tab.active {
@@ -166,6 +175,7 @@ h1 {
 }
 
 .tab.active .tab-icon {
+  background: var(--accent-bg);
   transform: translateY(-1px);
 }
 
@@ -197,18 +207,24 @@ select:focus {
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: var(--accent-gradient);
   color: #fff;
   border: none;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.28);
+  transition: filter 0.15s ease, transform 0.15s ease;
 }
 
 .btn-primary:hover {
-  background: var(--accent-hover);
+  filter: brightness(1.06);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
 .btn-primary:disabled {
@@ -1007,4 +1023,20 @@ select:focus {
   font-weight: 650;
   border-top: 1px solid var(--border);
   margin-top: 12px;
+}
+
+/* Строки: скругление и лёгкое сжатие при касании */
+.expense-row,
+.breakdown-row,
+.budget-row,
+.category-row {
+  border-radius: 16px;
+  transition: transform 0.1s ease;
+}
+
+.expense-row:active,
+.breakdown-row:active,
+.budget-row:active,
+.category-row:active {
+  transform: scale(0.985);
 }
