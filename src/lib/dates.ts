@@ -20,6 +20,14 @@ export function formatDay(dateKey: string): string {
   return dayFormatter.format(new Date(y, m - 1, d));
 }
 
+const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'long' });
+
+// 'YYYY-MM-DD' → 'среда'
+export function formatWeekday(dateKey: string): string {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return weekdayFormatter.format(new Date(y, m - 1, d));
+}
+
 export function formatMoney(value: number): string {
   return moneyFormatter.format(value);
 }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createIncome, deleteIncome, fetchIncomes, updateIncome } from '../lib/api';
 import type { Income } from '../types';
-import { addDays, formatDay, formatMoney, todayKey } from '../lib/dates';
+import { addDays, formatDay, formatMoney, formatWeekday, todayKey } from '../lib/dates';
 import IncomeForm from '../components/IncomeForm';
 import type { IncomeFormValues } from '../components/IncomeForm';
 import Modal from '../components/Modal';
@@ -99,7 +99,7 @@ export default function IncomePage() {
           </button>
           <div className="date-nav-center">
             <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
-            <span className="date-nav-label">{formatDay(selectedDate)}</span>
+            <span className="date-nav-label">{formatWeekday(selectedDate)}</span>
           </div>
           <button
             className="icon-btn"

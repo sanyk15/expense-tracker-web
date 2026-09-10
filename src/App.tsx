@@ -9,6 +9,7 @@ import Stats from './pages/Stats';
 import Budgets from './pages/Budgets';
 import Categories from './pages/Categories';
 import CategoryDetail from './pages/CategoryDetail';
+import IncomeSourceDetail from './pages/IncomeSourceDetail';
 import Settings from './pages/Settings';
 
 function Root() {
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="budgets" element={<Budgets />} />
               <Route path="categories" element={<Categories />} />
               <Route path="category/:id" element={<CategoryDetail />} />
+              <Route path="income-source/:name" element={<IncomeSourceDetail />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>

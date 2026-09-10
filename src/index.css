@@ -103,6 +103,7 @@ h1 {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 /* ── Панель вкладок ─────────────────────────────────── */
@@ -557,7 +558,25 @@ select:focus {
   padding-bottom: 8px;
 }
 
+.chart-wrap {
+  display: flex;
+  gap: 8px;
+}
+
+.y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  width: 44px;
+  padding-bottom: 16px;
+}
+
 .bar-chart {
+  flex: 1;
   display: flex;
   align-items: flex-end;
   gap: 4px;
@@ -589,6 +608,8 @@ select:focus {
 }
 
 .bar-label {
+  height: 16px;
+  line-height: 16px;
   font-size: 9px;
   color: var(--text-muted);
   white-space: nowrap;

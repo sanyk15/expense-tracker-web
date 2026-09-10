@@ -8,7 +8,7 @@ import {
   updateExpense,
 } from '../lib/api';
 import type { Category, Expense } from '../types';
-import { addDays, formatDay, formatMoney, todayKey } from '../lib/dates';
+import { addDays, formatDay, formatMoney, formatWeekday, todayKey } from '../lib/dates';
 import ExpenseForm from '../components/ExpenseForm';
 import type { ExpenseFormValues } from '../components/ExpenseForm';
 import Modal from '../components/Modal';
@@ -124,7 +124,7 @@ export default function Expenses() {
           </button>
           <div className="date-nav-center">
             <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
-            <span className="date-nav-label">{formatDay(selectedDate)}</span>
+            <span className="date-nav-label">{formatWeekday(selectedDate)}</span>
           </div>
           <button
             className="icon-btn"

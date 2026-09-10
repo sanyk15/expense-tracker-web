@@ -1,4 +1,6 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { useRef } from 'react';
+import type { TouchEvent } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const TABS = [
@@ -11,6 +13,26 @@ const TABS = [
 
 export default function Layout() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const touchStartX = useRef<number | null>(null);
+
+  function onTouchStart(e: TouchEvent<HTMLElement>) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function onTouchEnd(e: TouchEvent<HTMLElement>) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 60) return;
+
+    const idx = TABS.findIndex((t) => location.pathname === t.to);
+    if (idx < 0) return; // не на основной вкладке (настройки, детализация)
+    const dir = dx < 0 ? 1 : -1; // свайп влево → следующая вкладка
+    const next = idx + dir;
+    if (next >= 0 && next < TABS.length) navigate(TABS[next].to);
+  }
 
   return (
     <div className="app-shell">
@@ -27,7 +49,7 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="content">
+      <main className="content" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <Outlet />
       </main>
 

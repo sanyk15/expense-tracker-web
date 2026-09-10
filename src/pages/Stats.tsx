@@ -71,13 +71,16 @@ export default function Stats() {
   const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount, 0);
 
   const incomeBreakdown = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { label: string; amount: number }>();
     for (const i of filteredIncomes) {
-      const key = i.note.trim() || 'Без источника';
-      map.set(key, (map.get(key) ?? 0) + i.amount);
+      const label = i.note.trim() || 'Без источника';
+      const key = label.toLowerCase();
+      const existing = map.get(key);
+      if (existing) existing.amount += i.amount;
+      else map.set(key, { label, amount: i.amount });
     }
     return [...map.entries()]
-      .map(([note, amount]) => ({ note, amount }))
+      .map(([key, { label, amount }]) => ({ key, label, amount }))
       .sort((a, b) => b.amount - a.amount);
   }, [filteredIncomes]);
 
@@ -205,14 +208,14 @@ export default function Stats() {
                 </Link>
               );
             })
-          : incomeBreakdown.map(({ note, amount }) => {
+          : incomeBreakdown.map(({ key, label, amount }) => {
               const pct = totalIncomes > 0 ? (amount / totalIncomes) * 100 : 0;
               return (
-                <div key={note} className="breakdown-row">
+                <Link key={key} to={`/income-source/${encodeURIComponent(key)}`} className="breakdown-row">
                   <span className="expense-icon income-icon">💰</span>
                   <div className="breakdown-main">
                     <div className="breakdown-top">
-                      <span className="expense-name">{note}</span>
+                      <span className="expense-name">{label}</span>
                       <span className="breakdown-amount">{formatMoney(amount)}</span>
                     </div>
                     <div className="progress-track">
@@ -222,7 +225,7 @@ export default function Stats() {
                       <span>{pct.toFixed(0)}%</span>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
       </div>
@@ -230,23 +233,43 @@ export default function Stats() {
   );
 }
 
+function formatCompact(value: number): string {
+  if (value === 0) return '0';
+  if (value >= 1_000_000) return `${trimNum(value / 1_000_000)} млн`;
+  if (value >= 1_000) return `${trimNum(value / 1_000)} тыс.`;
+  return trimNum(value);
+}
+
+function trimNum(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return String(rounded).replace('.', ',');
+}
+
 function BarChart({ bars }: { bars: { label: string; value: number }[] }) {
   const max = Math.max(...bars.map((b) => b.value), 0);
   // При большом числе столбцов (месяц, длинный диапазон) подписи разрежаем.
   const step = bars.length > 14 ? Math.ceil(bars.length / 12) : 1;
+  const ticks = [max, max / 2, 0];
   return (
-    <div className="bar-chart">
-      {bars.map((b, i) => (
-        <div key={i} className="bar-col" title={`${b.label}: ${formatMoney(b.value)}`}>
-          <div className="bar-track">
-            <div
-              className="bar-fill"
-              style={{ height: max > 0 ? `${(b.value / max) * 100}%` : '0%' }}
-            />
+    <div className="chart-wrap">
+      <div className="y-axis">
+        {ticks.map((t, i) => (
+          <span key={i}>{formatCompact(t)}</span>
+        ))}
+      </div>
+      <div className="bar-chart">
+        {bars.map((b, i) => (
+          <div key={i} className="bar-col" title={`${b.label}: ${formatMoney(b.value)}`}>
+            <div className="bar-track">
+              <div
+                className="bar-fill"
+                style={{ height: max > 0 ? `${(b.value / max) * 100}%` : '0%' }}
+              />
+            </div>
+            <span className="bar-label">{i % step === 0 ? b.label : ''}</span>
           </div>
-          <span className="bar-label">{i % step === 0 ? b.label : ''}</span>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
