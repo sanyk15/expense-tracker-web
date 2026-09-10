@@ -36,9 +36,9 @@ export interface CategoryBudget {
 export const DEFAULT_CATEGORIES: Array<{ name: string; icon: string; color: string }> = [
   { name: 'Еда', icon: '🍔', color: '#f97316' },
   { name: 'Транспорт', icon: '🚗', color: '#3b82f6' },
-  { name: 'Развлечения', icon: '🎬', color: '#8b5cf6' },
-  { name: 'Шоппинг', icon: '🛍️', color: '#ec4899' },
+  { name: 'Развлечения', icon: '🎮', color: '#8b5cf6' },
+  { name: 'Покупки', icon: '🛍️', color: '#ec4899' },
   { name: 'Здоровье', icon: '💊', color: '#ef4444' },
-  { name: 'Коммуналка', icon: '🏠', color: '#14b8a6' },
-  { name: 'Другое', icon: '📦', color: '#6b7280' },
+  { name: 'Коммунальные', icon: '🏠', color: '#14b8a6' },
+  { name: 'Прочее', icon: '📌', color: '#6b7280' },
 ];

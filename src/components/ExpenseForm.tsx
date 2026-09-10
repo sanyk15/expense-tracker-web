@@ -10,18 +10,28 @@ export interface ExpenseFormValues {
   note: string;
 }
 
+const QUICK_AMOUNTS = [100, 500, 1000, 2000, 5000];
+
 interface Props {
   categories: Category[];
   initial?: Expense;
+  defaultDate?: string;
   busy?: boolean;
   onSubmit: (values: ExpenseFormValues) => Promise<void>;
   onCancel: () => void;
 }
 
-export default function ExpenseForm({ categories, initial, busy, onSubmit, onCancel }: Props) {
+export default function ExpenseForm({
+  categories,
+  initial,
+  defaultDate,
+  busy,
+  onSubmit,
+  onCancel,
+}: Props) {
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? categories[0]?.id ?? '');
-  const [date, setDate] = useState(initial?.date ?? todayKey());
+  const [date, setDate] = useState(initial?.date ?? defaultDate ?? todayKey());
   const [note, setNote] = useState(initial?.note ?? '');
 
   async function handleSubmit(e: FormEvent) {
@@ -34,7 +44,7 @@ export default function ExpenseForm({ categories, initial, busy, onSubmit, onCan
   return (
     <form className="form-stack" onSubmit={handleSubmit}>
       <label>
-        Сумма (₽)
+        Сумма
         <input
           inputMode="decimal"
           autoFocus
@@ -44,6 +54,14 @@ export default function ExpenseForm({ categories, initial, busy, onSubmit, onCan
           required
         />
       </label>
+
+      <div className="quick-amounts">
+        {QUICK_AMOUNTS.map((v) => (
+          <button key={v} type="button" className="quick-amount" onClick={() => setAmount(String(v))}>
+            {v}
+          </button>
+        ))}
+      </div>
 
       <label>
         Категория
@@ -62,11 +80,11 @@ export default function ExpenseForm({ categories, initial, busy, onSubmit, onCan
       </label>
 
       <label>
-        Заметка
+        Примечание (опционально)
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Необязательно"
+          placeholder="Добавь описание"
         />
       </label>
 

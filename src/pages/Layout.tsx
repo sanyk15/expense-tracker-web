@@ -5,7 +5,7 @@ const TABS = [
   { to: '/expenses', label: 'Расходы', icon: '💸' },
   { to: '/income', label: 'Доходы', icon: '💰' },
   { to: '/stats', label: 'Статистика', icon: '📊' },
-  { to: '/budgets', label: 'Бюджеты', icon: '🎯' },
+  { to: '/budgets', label: 'Лимиты', icon: '🎯' },
   { to: '/categories', label: 'Категории', icon: '🗂️' },
 ];
 

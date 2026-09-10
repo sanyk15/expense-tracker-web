@@ -77,7 +77,7 @@ export default function BudgetsPage() {
   return (
     <section>
       <div className="page-header">
-        <h1>Бюджеты</h1>
+        <h1>Лимиты</h1>
       </div>
 
       <div className="month-nav">

@@ -9,16 +9,19 @@ export interface IncomeFormValues {
   note: string;
 }
 
+const QUICK_AMOUNTS = [500, 1000, 5000, 10000, 50000];
+
 interface Props {
   initial?: Income;
+  defaultDate?: string;
   busy?: boolean;
   onSubmit: (values: IncomeFormValues) => Promise<void>;
   onCancel: () => void;
 }
 
-export default function IncomeForm({ initial, busy, onSubmit, onCancel }: Props) {
+export default function IncomeForm({ initial, defaultDate, busy, onSubmit, onCancel }: Props) {
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
-  const [date, setDate] = useState(initial?.date ?? todayKey());
+  const [date, setDate] = useState(initial?.date ?? defaultDate ?? todayKey());
   const [note, setNote] = useState(initial?.note ?? '');
 
   async function handleSubmit(e: FormEvent) {
@@ -31,7 +34,7 @@ export default function IncomeForm({ initial, busy, onSubmit, onCancel }: Props)
   return (
     <form className="form-stack" onSubmit={handleSubmit}>
       <label>
-        Сумма (₽)
+        Сумма
         <input
           inputMode="decimal"
           autoFocus
@@ -42,17 +45,25 @@ export default function IncomeForm({ initial, busy, onSubmit, onCancel }: Props)
         />
       </label>
 
+      <div className="quick-amounts">
+        {QUICK_AMOUNTS.map((v) => (
+          <button key={v} type="button" className="quick-amount" onClick={() => setAmount(String(v))}>
+            {v}
+          </button>
+        ))}
+      </div>
+
       <label>
         Дата
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
       </label>
 
       <label>
-        Источник / заметка
+        Комментарий
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Зарплата, подработка…"
+          placeholder="Откуда доход? (опционально)"
         />
       </label>
 
