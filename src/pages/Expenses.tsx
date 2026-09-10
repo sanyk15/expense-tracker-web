@@ -12,7 +12,11 @@ import { addDays, formatDay, formatMoney, formatWeekday, todayKey } from '../lib
 import ExpenseForm from '../components/ExpenseForm';
 import type { ExpenseFormValues } from '../components/ExpenseForm';
 import Modal from '../components/Modal';
+import Snackbar from '../components/Snackbar';
 import { useCachedData } from '../hooks/useCachedData';
+import { useAddShortcut } from '../hooks/useAddShortcut';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
 import { haptic } from '../lib/haptics';
 
 async function fetchCategoriesWithSeed(): Promise<Category[]> {
@@ -30,10 +34,12 @@ export default function Expenses() {
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [showAll, setShowAll] = useState(false);
+  const [query, setQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [busy, setBusy] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [undo, setUndo] = useState<Expense | null>(null);
 
   const categoryById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -48,24 +54,79 @@ export default function Expenses() {
   const dayTotal = dayExpenses.reduce((s, e) => s + e.amount, 0);
 
   const monthTotal = useMemo(() => {
-    const ym = todayKey().slice(0, 7);
+    const ym = selectedDate.slice(0, 7);
     return expenses.filter((e) => e.date.startsWith(ym)).reduce((s, e) => s + e.amount, 0);
-  }, [expenses]);
+  }, [expenses, selectedDate]);
+
+  const prevMonthTotal = useMemo(() => {
+    const [y, m] = selectedDate.split('-').map(Number);
+    const prev = new Date(y, m - 2, 1);
+    const ym = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+    return expenses.filter((e) => e.date.startsWith(ym)).reduce((s, e) => s + e.amount, 0);
+  }, [expenses, selectedDate]);
+
+  const monthLabel = useMemo(() => {
+    const [y, m] = selectedDate.split('-').map(Number);
+    return new Intl.DateTimeFormat('ru-RU', { month: 'long' }).format(new Date(y, m - 1, 1));
+  }, [selectedDate]);
+
+  const isToday = selectedDate === todayKey();
+  const monthDelta = monthTotal - prevMonthTotal;
+  const monthDeltaPct = prevMonthTotal > 0 ? Math.round((monthDelta / prevMonthTotal) * 100) : null;
+
+  const filteredExpenses = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return expenses;
+    return expenses.filter((e) => {
+      const cat = categoryById.get(e.categoryId);
+      return (cat?.name ?? '').toLowerCase().includes(q) || e.note.toLowerCase().includes(q);
+    });
+  }, [expenses, query, categoryById]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Expense[]>();
-    for (const e of expenses) {
+    for (const e of filteredExpenses) {
       const list = map.get(e.date) ?? [];
       list.push(e);
       map.set(e.date, list);
     }
     return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [filteredExpenses]);
+
+  const recentNotes = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const e of expenses) {
+      const n = e.note.trim();
+      if (n && !seen.has(n.toLowerCase())) {
+        seen.add(n.toLowerCase());
+        out.push(n);
+        if (out.length >= 8) break;
+      }
+    }
+    return out;
   }, [expenses]);
+
+  const recentAmounts = useMemo(() => {
+    const freq = new Map<number, number>();
+    for (const e of expenses) freq.set(e.amount, (freq.get(e.amount) ?? 0) + 1);
+    return [...freq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([v]) => v);
+  }, [expenses]);
+
+  const animatedDay = useAnimatedNumber(dayTotal);
+  const animatedMonth = useAnimatedNumber(monthTotal);
+
+  const { ref, pull, refreshing } = usePullToRefresh(refreshAll);
 
   function openAdd() {
     setEditing(null);
     setShowForm(true);
   }
+
+  useAddShortcut(['/expenses', '/stats', '/budgets'], openAdd);
 
   function openEdit(e: Expense) {
     setEditing(e);
@@ -97,43 +158,75 @@ export default function Expenses() {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm('Удалить расход?')) return;
+    const expense = expenses.find((e) => e.id === id);
+    if (!expense) return;
     setError(null);
     try {
       await deleteExpense(id);
       await refreshAll();
       haptic();
+      setUndo(expense);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось удалить');
     }
   }
 
+  function handleUndoDelete() {
+    const expense = undo;
+    setUndo(null);
+    if (!expense) return;
+    createExpense({
+      amount: expense.amount,
+      categoryId: expense.categoryId,
+      date: expense.date,
+      note: expense.note,
+    })
+      .then(refreshAll)
+      .catch((e) => setError(e instanceof Error ? e.message : 'Не удалось восстановить'));
+  }
+
   if (loading) {
-    return <div className="splash">Загрузка…</div>;
+    return (
+      <section className="skeleton-list">
+        <div className="skeleton skeleton-card" />
+        <div className="skeleton skeleton-row" />
+        <div className="skeleton skeleton-row" />
+        <div className="skeleton skeleton-row" />
+      </section>
+    );
   }
 
   return (
-    <section>
+    <section ref={ref}>
+      <div
+        className={`ptr${refreshing ? ' refreshing' : ''}`}
+        style={{ height: refreshing ? 44 : pull, opacity: refreshing ? 1 : Math.min(1, pull / 50) }}
+      >
+        <div className="spinner-ring" />
+      </div>
+
       <div className="page-header">
         <h1>Расходы</h1>
         <div className="page-header-actions">
           <button className="btn-ghost" onClick={() => setShowAll((v) => !v)}>
             {showAll ? 'По дням' : 'Все расходы'}
           </button>
-          <button className="btn-primary btn-sm" onClick={openAdd}>
-            + Добавить
-          </button>
         </div>
       </div>
 
       <div className="summary-card">
         <div className="summary-block">
-          <span className="summary-label">Сегодня</span>
-          <span className="summary-amount">{formatMoney(dayTotal)}</span>
+          <span className="summary-label">{isToday ? 'Сегодня' : 'За день'}</span>
+          <span className="summary-amount">{formatMoney(animatedDay)}</span>
         </div>
         <div className="summary-block">
-          <span className="summary-label">За месяц</span>
-          <span className="summary-amount">{formatMoney(monthTotal)}</span>
+          <span className="summary-label">За {monthLabel}</span>
+          <span className="summary-amount">{formatMoney(animatedMonth)}</span>
+          {prevMonthTotal > 0 && monthDeltaPct !== null && (
+            <span className={`summary-delta ${monthDelta < 0 ? 'down' : 'up'}`}>
+              {monthDelta < 0 ? 'меньше' : 'больше'} на {Math.abs(monthDeltaPct)}%, чем в прошлом месяце
+            </span>
+          )}
         </div>
       </div>
 
@@ -160,14 +253,32 @@ export default function Expenses() {
         </div>
       )}
 
+      {!showAll && !isToday && (
+        <div className="today-wrap">
+          <button className="btn-ghost btn-sm" onClick={() => setSelectedDate(todayKey())}>
+            Сегодня
+          </button>
+        </div>
+      )}
+
+      {showAll && (
+        <input
+          className="search-input"
+          type="search"
+          placeholder="Поиск по категории или заметке"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      )}
+
       {error && <div className="error">{error}</div>}
 
       {showAll ? (
         groups.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🎉</div>
-            <div className="empty-title">Пока нет расходов</div>
-            <div className="empty-sub">Добавь свой первый расход</div>
+            <div className="empty-icon">{query ? '🔍' : '🎉'}</div>
+            <div className="empty-title">{query ? 'Ничего не найдено' : 'Пока нет расходов'}</div>
+            <div className="empty-sub">{query ? 'Попробуй другой запрос' : 'Добавь свой первый расход'}</div>
           </div>
         ) : (
           groups.map(([date, items]) => (
@@ -220,11 +331,22 @@ export default function Expenses() {
             categories={categories}
             initial={editing ?? undefined}
             defaultDate={selectedDate}
+            recentAmounts={recentAmounts}
+            recentNotes={recentNotes}
             onSubmit={handleSubmit}
             onCancel={() => setShowForm(false)}
             busy={busy}
           />
         </Modal>
+      )}
+
+      {undo && (
+        <Snackbar
+          message="Расход удалён"
+          actionLabel="Отменить"
+          onAction={handleUndoDelete}
+          onClose={() => setUndo(null)}
+        />
       )}
     </section>
   );

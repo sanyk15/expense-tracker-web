@@ -17,6 +17,8 @@ interface Props {
   initial?: Expense;
   defaultDate?: string;
   busy?: boolean;
+  recentAmounts?: number[];
+  recentNotes?: string[];
   onSubmit: (values: ExpenseFormValues) => Promise<void>;
   onCancel: () => void;
 }
@@ -26,6 +28,8 @@ export default function ExpenseForm({
   initial,
   defaultDate,
   busy,
+  recentAmounts,
+  recentNotes,
   onSubmit,
   onCancel,
 }: Props) {
@@ -33,6 +37,8 @@ export default function ExpenseForm({
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? categories[0]?.id ?? '');
   const [date, setDate] = useState(initial?.date ?? defaultDate ?? todayKey());
   const [note, setNote] = useState(initial?.note ?? '');
+
+  const quickAmounts = recentAmounts && recentAmounts.length > 0 ? recentAmounts : QUICK_AMOUNTS;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -56,7 +62,7 @@ export default function ExpenseForm({
       </label>
 
       <div className="quick-amounts">
-        {QUICK_AMOUNTS.map((v) => (
+        {quickAmounts.map((v) => (
           <button key={v} type="button" className="quick-amount" onClick={() => setAmount(String(v))}>
             {v}
           </button>
@@ -87,6 +93,15 @@ export default function ExpenseForm({
           placeholder="Добавь описание"
         />
       </label>
+      {recentNotes && recentNotes.length > 0 && (
+        <div className="quick-amounts">
+          {recentNotes.slice(0, 4).map((n) => (
+            <button key={n} type="button" className="quick-amount note-chip" onClick={() => setNote(n)}>
+              {n}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="form-actions">
         <button type="button" className="btn-ghost" onClick={onCancel}>

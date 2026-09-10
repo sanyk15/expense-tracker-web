@@ -15,14 +15,26 @@ interface Props {
   initial?: Income;
   defaultDate?: string;
   busy?: boolean;
+  recentAmounts?: number[];
+  recentNotes?: string[];
   onSubmit: (values: IncomeFormValues) => Promise<void>;
   onCancel: () => void;
 }
 
-export default function IncomeForm({ initial, defaultDate, busy, onSubmit, onCancel }: Props) {
+export default function IncomeForm({
+  initial,
+  defaultDate,
+  busy,
+  recentAmounts,
+  recentNotes,
+  onSubmit,
+  onCancel,
+}: Props) {
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
   const [date, setDate] = useState(initial?.date ?? defaultDate ?? todayKey());
   const [note, setNote] = useState(initial?.note ?? '');
+
+  const quickAmounts = recentAmounts && recentAmounts.length > 0 ? recentAmounts : QUICK_AMOUNTS;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -46,7 +58,7 @@ export default function IncomeForm({ initial, defaultDate, busy, onSubmit, onCan
       </label>
 
       <div className="quick-amounts">
-        {QUICK_AMOUNTS.map((v) => (
+        {quickAmounts.map((v) => (
           <button key={v} type="button" className="quick-amount" onClick={() => setAmount(String(v))}>
             {v}
           </button>
@@ -66,6 +78,15 @@ export default function IncomeForm({ initial, defaultDate, busy, onSubmit, onCan
           placeholder="Откуда доход? (опционально)"
         />
       </label>
+      {recentNotes && recentNotes.length > 0 && (
+        <div className="quick-amounts">
+          {recentNotes.slice(0, 4).map((n) => (
+            <button key={n} type="button" className="quick-amount note-chip" onClick={() => setNote(n)}>
+              {n}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="form-actions">
         <button type="button" className="btn-ghost" onClick={onCancel}>

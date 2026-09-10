@@ -17,11 +17,11 @@ function compact(value: number): string {
 export default function DonutChart({ segments }: { segments: DonutSegment[] }) {
   const [selected, setSelected] = useState<number | null>(null);
   const total = segments.reduce((s, x) => s + x.value, 0);
-  const cx = 60;
-  const cy = 60;
-  const r = 50;
-  const baseSw = 16;
-  const selSw = 26;
+  const cx = 100;
+  const cy = 100;
+  const r = 78;
+  const baseSw = 24;
+  const selSw = 40;
   const C = 2 * Math.PI * r;
   let acc = 0;
 
@@ -45,7 +45,10 @@ export default function DonutChart({ segments }: { segments: DonutSegment[] }) {
 
   return (
     <div className="donut-wrap">
-      <svg viewBox="0 0 120 120" className="donut">
+      <svg
+        viewBox="0 0 200 200"
+        className={`donut${selected !== null ? ' selected' : ''}`}
+      >
         <circle cx={cx} cy={cy} r={r} fill="none" strokeWidth={baseSw} style={{ stroke: 'var(--border)' }} />
         {arcs.map((a, i) => (
           <circle
@@ -58,13 +61,13 @@ export default function DonutChart({ segments }: { segments: DonutSegment[] }) {
             strokeWidth={selected === i ? selSw : baseSw}
             strokeDasharray={a.dash}
             strokeDashoffset={a.offset}
-            transform="rotate(-90 60 60)"
+            transform="rotate(-90 100 100)"
             opacity={selected === null || selected === i ? 1 : 0.28}
             onClick={() => setSelected(selected === i ? null : i)}
             style={{ cursor: 'pointer' }}
           />
         ))}
-        {arcs.map((a) =>
+        {arcs.map((a, i) =>
           a.icon && a.frac >= 0.06 ? (
             <text
               key={`icon-${a.label}`}
@@ -72,7 +75,8 @@ export default function DonutChart({ segments }: { segments: DonutSegment[] }) {
               y={a.y}
               textAnchor="middle"
               dominantBaseline="central"
-              fontSize="11"
+              fontSize="15"
+              opacity={selected === null || selected === i ? 1 : 0.28}
               pointerEvents="none"
             >
               {a.icon}

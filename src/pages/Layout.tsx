@@ -2,6 +2,8 @@ import { useLayoutEffect, useRef } from 'react';
 import type { TouchEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { emitAdd } from '../lib/addEvent';
+import { haptic } from '../lib/haptics';
 import Expenses from './Expenses';
 import Income from './Income';
 import Stats from './Stats';
@@ -18,6 +20,22 @@ const TABS = [
 
 const PAGES = [Expenses, Income, Stats, Budgets, Categories];
 
+const LEFT_TABS = TABS.slice(0, 2);
+const RIGHT_TABS = TABS.slice(2);
+
+function renderTab(tab: { to: string; label: string; icon: string }) {
+  return (
+    <NavLink
+      key={tab.to}
+      to={tab.to}
+      className={({ isActive }) => `tab${isActive ? ' active' : ''}`}
+    >
+      <span className="tab-icon">{tab.icon}</span>
+      <span className="tab-label">{tab.label}</span>
+    </NavLink>
+  );
+}
+
 export default function Layout() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -32,7 +50,7 @@ export default function Layout() {
   // Устанавливаем позицию ленты при смене вкладки (до отрисовки, без мигания).
   useLayoutEffect(() => {
     if (isTab && carouselRef.current) {
-      carouselRef.current.style.transition = 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)';
+      carouselRef.current.style.transition = 'transform 0.42s cubic-bezier(0.32, 0.72, 0, 1)';
       carouselRef.current.style.transform = `translateX(${-currentIndex * 100}%)`;
     }
   }, [location.pathname, isTab, currentIndex]);
@@ -66,10 +84,15 @@ export default function Layout() {
     if (dx < -threshold && idx < TABS.length - 1) newIdx = idx + 1;
     else if (dx > threshold && idx > 0) newIdx = idx - 1;
     if (carouselRef.current) {
-      carouselRef.current.style.transition = 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)';
+      carouselRef.current.style.transition = 'transform 0.42s cubic-bezier(0.32, 0.72, 0, 1)';
       carouselRef.current.style.transform = `translateX(${-newIdx * 100}%)`;
     }
     if (newIdx !== idx) navigate(TABS[newIdx].to);
+  }
+
+  function handleAdd() {
+    haptic();
+    emitAdd();
   }
 
   return (
@@ -110,16 +133,11 @@ export default function Layout() {
       </main>
 
       <nav className="tabbar">
-        {TABS.map((tab) => (
-          <NavLink
-            key={tab.to}
-            to={tab.to}
-            className={({ isActive }) => `tab${isActive ? ' active' : ''}`}
-          >
-            <span className="tab-icon">{tab.icon}</span>
-            <span className="tab-label">{tab.label}</span>
-          </NavLink>
-        ))}
+        <div className="tab-group">{LEFT_TABS.map(renderTab)}</div>
+        <button className="add-bump" onClick={handleAdd} aria-label="Добавить">
+          <span className="add-bump-circle">+</span>
+        </button>
+        <div className="tab-group">{RIGHT_TABS.map(renderTab)}</div>
       </nav>
     </div>
   );

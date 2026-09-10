@@ -5,7 +5,10 @@ import { addDays, formatDay, formatMoney, formatWeekday, todayKey } from '../lib
 import IncomeForm from '../components/IncomeForm';
 import type { IncomeFormValues } from '../components/IncomeForm';
 import Modal from '../components/Modal';
+import Snackbar from '../components/Snackbar';
 import { useCachedData } from '../hooks/useCachedData';
+import { useAddShortcut } from '../hooks/useAddShortcut';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { haptic } from '../lib/haptics';
 
 export default function IncomePage() {
@@ -18,6 +21,7 @@ export default function IncomePage() {
   const [editing, setEditing] = useState<Income | null>(null);
   const [busy, setBusy] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [undo, setUndo] = useState<Income | null>(null);
 
   const dayIncomes = useMemo(
     () => incomes.filter((i) => i.date === selectedDate),
@@ -36,10 +40,37 @@ export default function IncomePage() {
     return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
   }, [incomes]);
 
+  const recentNotes = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const i of incomes) {
+      const n = i.note.trim();
+      if (n && !seen.has(n.toLowerCase())) {
+        seen.add(n.toLowerCase());
+        out.push(n);
+        if (out.length >= 8) break;
+      }
+    }
+    return out;
+  }, [incomes]);
+
+  const recentAmounts = useMemo(() => {
+    const freq = new Map<number, number>();
+    for (const i of incomes) freq.set(i.amount, (freq.get(i.amount) ?? 0) + 1);
+    return [...freq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([v]) => v);
+  }, [incomes]);
+
+  const { ref, pull, refreshing } = usePullToRefresh(refresh);
+
   function openAdd() {
     setEditing(null);
     setShowForm(true);
   }
+
+  useAddShortcut(['/income'], openAdd);
 
   function openEdit(inc: Income) {
     setEditing(inc);
@@ -67,31 +98,53 @@ export default function IncomePage() {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm('Удалить доход?')) return;
+    const income = incomes.find((i) => i.id === id);
+    if (!income) return;
     setError(null);
     try {
       await deleteIncome(id);
       await refresh();
       haptic();
+      setUndo(income);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось удалить');
     }
   }
 
+  function handleUndoDelete() {
+    const income = undo;
+    setUndo(null);
+    if (!income) return;
+    createIncome({ amount: income.amount, date: income.date, note: income.note })
+      .then(refresh)
+      .catch((e) => setError(e instanceof Error ? e.message : 'Не удалось восстановить'));
+  }
+
   if (loading) {
-    return <div className="splash">Загрузка…</div>;
+    return (
+      <section className="skeleton-list">
+        <div className="skeleton skeleton-row" />
+        <div className="skeleton skeleton-row" />
+        <div className="skeleton skeleton-row" />
+        <div className="skeleton skeleton-row" />
+      </section>
+    );
   }
 
   return (
-    <section>
+    <section ref={ref}>
+      <div
+        className={`ptr${refreshing ? ' refreshing' : ''}`}
+        style={{ height: refreshing ? 44 : pull, opacity: refreshing ? 1 : Math.min(1, pull / 50) }}
+      >
+        <div className="spinner-ring" />
+      </div>
+
       <div className="page-header">
         <h1>Доходы</h1>
         <div className="page-header-actions">
           <button className="btn-ghost" onClick={() => setShowAll((v) => !v)}>
             {showAll ? 'По дням' : 'Все доходы'}
-          </button>
-          <button className="btn-primary btn-sm" onClick={openAdd}>
-            + Добавить
           </button>
         </div>
       </div>
@@ -166,11 +219,22 @@ export default function IncomePage() {
           <IncomeForm
             initial={editing ?? undefined}
             defaultDate={selectedDate}
+            recentAmounts={recentAmounts}
+            recentNotes={recentNotes}
             onSubmit={handleSubmit}
             onCancel={() => setShowForm(false)}
             busy={busy}
           />
         </Modal>
+      )}
+
+      {undo && (
+        <Snackbar
+          message="Доход удалён"
+          actionLabel="Отменить"
+          onAction={handleUndoDelete}
+          onClose={() => setUndo(null)}
+        />
       )}
     </section>
   );

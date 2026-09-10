@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { TouchEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchBudgets, fetchCategories, fetchExpenses, fetchIncomes } from '../lib/api';
@@ -7,6 +7,7 @@ import { formatMoney } from '../lib/dates';
 import { currentMonth, currentYear, dateKey, lastDays } from '../lib/periods';
 import type { DateRange } from '../lib/periods';
 import { useCachedData } from '../hooks/useCachedData';
+import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
 import DonutChart from '../components/DonutChart';
 import type { DonutSegment } from '../components/DonutChart';
 
@@ -47,25 +48,62 @@ export default function Stats() {
     localStorage.getItem('statsChartType') === 'donut' ? 'donut' : 'bar',
   );
   const chartStartX = useRef<number | null>(null);
+  const chartCarouselRef = useRef<HTMLDivElement>(null);
+  const chartDrag = useRef(0);
 
   function setChartType(t: 'bar' | 'donut') {
     localStorage.setItem('statsChartType', t);
     setChartTypeState(t);
   }
 
+  const chartIdx = chartType === 'bar' ? 0 : 1;
+
+  // Позиционируем ленту графиков при смене типа (тап по точкам или свайп).
+  useLayoutEffect(() => {
+    const el = chartCarouselRef.current;
+    if (!el) return;
+    el.style.transition = 'transform 0.42s cubic-bezier(0.32, 0.72, 0, 1)';
+    el.style.transform = `translateX(${-chartIdx * 100}%)`;
+  }, [chartIdx]);
+
   function onChartTouchStart(e: TouchEvent<HTMLDivElement>) {
     e.stopPropagation();
     chartStartX.current = e.touches[0].clientX;
   }
 
+  function onChartTouchMove(e: TouchEvent<HTMLDivElement>) {
+    e.stopPropagation();
+    if (chartStartX.current === null) return;
+    const idx = chartIdx;
+    const dx = e.touches[0].clientX - chartStartX.current;
+    const width = chartCarouselRef.current?.clientWidth ?? window.innerWidth;
+    const maxLeft = idx < 1 ? width : 0;
+    const maxRight = idx > 0 ? width : 0;
+    const clamped = Math.max(-maxLeft, Math.min(maxRight, dx));
+    chartDrag.current = clamped;
+    if (chartCarouselRef.current) {
+      chartCarouselRef.current.style.transition = 'none';
+      chartCarouselRef.current.style.transform = `translateX(calc(${-idx * 100}% + ${clamped}px))`;
+    }
+  }
+
   function onChartTouchEnd(e: TouchEvent<HTMLDivElement>) {
     e.stopPropagation();
     if (chartStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - chartStartX.current;
     chartStartX.current = null;
-    if (Math.abs(dx) > 50) {
-      setChartType(chartType === 'bar' ? 'donut' : 'bar');
+    const idx = chartIdx;
+    const dx = chartDrag.current;
+    chartDrag.current = 0;
+    const width = chartCarouselRef.current?.clientWidth ?? window.innerWidth;
+    const threshold = width * 0.25;
+    let newIdx = idx;
+    if (dx < -threshold && idx < 1) newIdx = idx + 1;
+    else if (dx > threshold && idx > 0) newIdx = idx - 1;
+    if (chartCarouselRef.current) {
+      chartCarouselRef.current.style.transition = 'transform 0.42s cubic-bezier(0.32, 0.72, 0, 1)';
+      chartCarouselRef.current.style.transform = `translateX(${-newIdx * 100}%)`;
     }
+    if (newIdx !== idx) setChartType(newIdx === 0 ? 'bar' : 'donut');
   }
 
   const range: DateRange = useMemo(() => {
@@ -169,11 +207,12 @@ export default function Stats() {
     }));
   }, [tab, expenseBreakdown, incomeBreakdown]);
 
+  const total = tab === 'expenses' ? totalExpenses : totalIncomes;
+  const animatedTotal = useAnimatedNumber(total);
+
   if (loading) {
     return <div className="splash">Загрузка…</div>;
   }
-
-  const total = tab === 'expenses' ? totalExpenses : totalIncomes;
 
   return (
     <section>
@@ -218,15 +257,25 @@ export default function Stats() {
 
       <div className="stat-total card">
         <span>Итого за период</span>
-        <strong>{formatMoney(total)}</strong>
+        <strong>{formatMoney(animatedTotal)}</strong>
       </div>
 
-      <div
-        className="card chart-card chart-swipe"
-        onTouchStart={onChartTouchStart}
-        onTouchEnd={onChartTouchEnd}
-      >
-        {chartType === 'bar' ? <BarChart bars={bars} /> : <DonutChart segments={donutSegments} />}
+      <div className="card chart-card">
+        <div
+          className="chart-carousel-viewport"
+          onTouchStart={onChartTouchStart}
+          onTouchMove={onChartTouchMove}
+          onTouchEnd={onChartTouchEnd}
+        >
+          <div className="chart-carousel" ref={chartCarouselRef}>
+            <div className="chart-slide">
+              <BarChart bars={bars} />
+            </div>
+            <div className="chart-slide">
+              <DonutChart segments={donutSegments} />
+            </div>
+          </div>
+        </div>
         <div className="chart-dots">
           <span
             className={`chart-dot${chartType === 'bar' ? ' active' : ''}`}
