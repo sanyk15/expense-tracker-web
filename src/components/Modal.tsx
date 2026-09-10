@@ -5,13 +5,17 @@ interface Props {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  closing?: boolean;
 }
 
 // Модалка рендерится через портал в document.body, чтобы не попадать под
 // overflow/скролл контейнера .content и всегда быть поверх нижней панели.
-export default function Modal({ title, onClose, children }: Props) {
+export default function Modal({ title, onClose, children, closing }: Props) {
   return createPortal(
-    <div className="modal-backdrop" onClick={onClose}>
+    <div
+      className={`modal-backdrop${closing ? ' closing' : ''}`}
+      onClick={closing ? undefined : onClose}
+    >
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>{title}</h2>
         {children}

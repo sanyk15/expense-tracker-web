@@ -32,6 +32,7 @@ export default function Expenses() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [busy, setBusy] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   const categoryById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -75,8 +76,12 @@ export default function Expenses() {
     try {
       if (editing) await updateExpense(editing.id, values);
       else await createExpense(values);
-      setShowForm(false);
       await refreshAll();
+      setClosing(true);
+      window.setTimeout(() => {
+        setShowForm(false);
+        setClosing(false);
+      }, 320);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось сохранить');
     } finally {
@@ -191,7 +196,7 @@ export default function Expenses() {
       )}
 
       {showForm && (
-        <Modal title={editing ? 'Изменить расход' : 'Добавить расход'} onClose={() => setShowForm(false)}>
+        <Modal title={editing ? 'Изменить расход' : 'Добавить расход'} onClose={() => setShowForm(false)} closing={closing}>
           <ExpenseForm
             categories={categories}
             initial={editing ?? undefined}

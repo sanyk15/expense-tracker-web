@@ -99,11 +99,38 @@ h1 {
 
 .content {
   flex: 1;
-  padding: 16px;
+  overflow: hidden;
+}
+
+/* Карусель вкладок: страница едет за пальцем, возвращается, если не дотянули */
+.carousel-viewport {
+  height: 100%;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.carousel {
+  display: flex;
+  height: 100%;
+  will-change: transform;
+}
+
+.carousel-page {
+  flex: 0 0 100%;
+  height: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
+  padding: 16px;
+}
+
+.detail-content {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 16px;
 }
 
 /* ── Панель вкладок ─────────────────────────────────── */
@@ -420,6 +447,35 @@ select:focus {
 
 .modal h2 {
   margin: 0 0 16px;
+}
+
+/* Анимация сохранения: карточка сжимается и улетает вверх */
+.modal-backdrop.closing .modal {
+  animation: save-fly 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.modal-backdrop.closing {
+  animation: backdrop-fade 0.32s ease forwards;
+}
+
+@keyframes save-fly {
+  from {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-45vh) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes backdrop-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @media (min-width: 768px) {

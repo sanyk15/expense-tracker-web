@@ -16,6 +16,7 @@ export default function IncomePage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Income | null>(null);
   const [busy, setBusy] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   const dayIncomes = useMemo(
     () => incomes.filter((i) => i.date === selectedDate),
@@ -50,8 +51,12 @@ export default function IncomePage() {
     try {
       if (editing) await updateIncome(editing.id, values);
       else await createIncome(values);
-      setShowForm(false);
       await refresh();
+      setClosing(true);
+      window.setTimeout(() => {
+        setShowForm(false);
+        setClosing(false);
+      }, 320);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось сохранить');
     } finally {
@@ -154,7 +159,7 @@ export default function IncomePage() {
       )}
 
       {showForm && (
-        <Modal title={editing ? 'Изменить доход' : 'Новый доход'} onClose={() => setShowForm(false)}>
+        <Modal title={editing ? 'Изменить доход' : 'Новый доход'} onClose={() => setShowForm(false)} closing={closing}>
           <IncomeForm
             initial={editing ?? undefined}
             defaultDate={selectedDate}
