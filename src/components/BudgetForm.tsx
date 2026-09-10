@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Category } from '../types';
+import Modal from './Modal';
 
 interface Props {
   category: Category;
@@ -22,33 +23,28 @@ export default function BudgetForm({ category, currentLimit, onSubmit, onCancel 
   }
 
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>
-          Лимит: {category.icon} {category.name}
-        </h2>
-        <form className="form-stack" onSubmit={handleSubmit}>
-          <label>
-            Лимит на месяц (₽)
-            <input
-              inputMode="decimal"
-              autoFocus
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="0"
-            />
-          </label>
-          <p className="muted">Укажи 0, чтобы убрать лимит.</p>
-          <div className="form-actions">
-            <button type="button" className="btn-ghost" onClick={onCancel}>
-              Отмена
-            </button>
-            <button type="submit" className="btn-primary" disabled={busy}>
-              {busy ? 'Сохраняем…' : 'Сохранить'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal title={`Лимит: ${category.icon} ${category.name}`} onClose={onCancel}>
+      <form className="form-stack" onSubmit={handleSubmit}>
+        <label>
+          Лимит на месяц (₽)
+          <input
+            inputMode="decimal"
+            autoFocus
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="0"
+          />
+        </label>
+        <p className="muted">Укажи 0, чтобы убрать лимит.</p>
+        <div className="form-actions">
+          <button type="button" className="btn-ghost" onClick={onCancel}>
+            Отмена
+          </button>
+          <button type="submit" className="btn-primary" disabled={busy}>
+            {busy ? 'Сохраняем…' : 'Сохранить'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

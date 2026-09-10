@@ -1,42 +1,25 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { fetchBudgets, fetchCategories, fetchExpenses, upsertBudget } from '../lib/api';
 import type { Category, CategoryBudget, Expense } from '../types';
 import { formatMoney } from '../lib/dates';
 import { addMonths, currentYearMonth, monthLabel } from '../lib/periods';
 import type { YearMonth } from '../lib/periods';
 import BudgetForm from '../components/BudgetForm';
+import { useCachedData } from '../hooks/useCachedData';
 
 export default function BudgetsPage() {
+  const cats = useCachedData<Category[]>('categories', fetchCategories, []);
+  const exps = useCachedData<Expense[]>('expenses', fetchExpenses, []);
+  const buds = useCachedData<CategoryBudget[]>('budgets', fetchBudgets, []);
+
+  const categories = cats.data;
+  const expenses = exps.data;
+  const budgets = buds.data;
+  const loading = cats.loading || exps.loading || buds.loading;
+
   const [ym, setYm] = useState<YearMonth>(currentYearMonth());
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [budgets, setBudgets] = useState<CategoryBudget[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [cats, exps, buds] = await Promise.all([
-        fetchCategories(),
-        fetchExpenses(),
-        fetchBudgets(),
-      ]);
-      setCategories(cats);
-      setExpenses(exps);
-      setBudgets(buds);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось загрузить');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const spentByCategory = useMemo(() => {
     const map = new Map<string, number>();
@@ -64,7 +47,7 @@ export default function BudgetsPage() {
     try {
       await upsertBudget({ categoryId: category.id, year: ym.year, month: ym.month, limit });
       setEditingCat(null);
-      await load();
+      await buds.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось сохранить лимит');
     }

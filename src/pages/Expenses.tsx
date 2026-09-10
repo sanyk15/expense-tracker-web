@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   createExpense,
   deleteExpense,
@@ -11,36 +11,27 @@ import type { Category, Expense } from '../types';
 import { addDays, formatDay, formatMoney, todayKey } from '../lib/dates';
 import ExpenseForm from '../components/ExpenseForm';
 import type { ExpenseFormValues } from '../components/ExpenseForm';
+import Modal from '../components/Modal';
+import { useCachedData } from '../hooks/useCachedData';
+
+async function fetchCategoriesWithSeed(): Promise<Category[]> {
+  await ensureDefaultCategories();
+  return fetchCategories();
+}
 
 export default function Expenses() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cats = useCachedData<Category[]>('categories', fetchCategoriesWithSeed, []);
+  const exps = useCachedData<Expense[]>('expenses', fetchExpenses, []);
+  const categories = cats.data;
+  const expenses = exps.data;
+  const loading = cats.loading || exps.loading;
+
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [showAll, setShowAll] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await ensureDefaultCategories();
-      const [cats, exps] = await Promise.all([fetchCategories(), fetchExpenses()]);
-      setCategories(cats);
-      setExpenses(exps);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось загрузить данные');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const categoryById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -74,6 +65,10 @@ export default function Expenses() {
     setShowForm(true);
   }
 
+  async function refreshAll() {
+    await Promise.all([cats.refresh(), exps.refresh()]);
+  }
+
   async function handleSubmit(values: ExpenseFormValues) {
     setBusy(true);
     setError(null);
@@ -81,7 +76,7 @@ export default function Expenses() {
       if (editing) await updateExpense(editing.id, values);
       else await createExpense(values);
       setShowForm(false);
-      await load();
+      await refreshAll();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось сохранить');
     } finally {
@@ -94,7 +89,7 @@ export default function Expenses() {
     setError(null);
     try {
       await deleteExpense(id);
-      await load();
+      await refreshAll();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось удалить');
     }
@@ -196,19 +191,16 @@ export default function Expenses() {
       )}
 
       {showForm && (
-        <div className="modal-backdrop" onClick={() => setShowForm(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{editing ? 'Изменить расход' : 'Добавить расход'}</h2>
-            <ExpenseForm
-              categories={categories}
-              initial={editing ?? undefined}
-              defaultDate={selectedDate}
-              onSubmit={handleSubmit}
-              onCancel={() => setShowForm(false)}
-              busy={busy}
-            />
-          </div>
-        </div>
+        <Modal title={editing ? 'Изменить расход' : 'Добавить расход'} onClose={() => setShowForm(false)}>
+          <ExpenseForm
+            categories={categories}
+            initial={editing ?? undefined}
+            defaultDate={selectedDate}
+            onSubmit={handleSubmit}
+            onCancel={() => setShowForm(false)}
+            busy={busy}
+          />
+        </Modal>
       )}
     </section>
   );

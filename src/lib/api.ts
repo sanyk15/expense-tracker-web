@@ -66,20 +66,42 @@ const mapBudget = (r: BudgetRow): CategoryBudget => ({
   limit: Number(r.limit),
 });
 
+// Выборка всех строк с пагинацией (PostgREST отдаёт максимум 1000 за раз).
+async function selectAll(
+  table: string,
+  orders: Array<{ column: string; ascending: boolean }> = [],
+): Promise<unknown[]> {
+  const pageSize = 1000;
+  const result: unknown[] = [];
+  let from = 0;
+  for (;;) {
+    let query = supabase.from(table).select('*');
+    for (const o of orders) query = query.order(o.column, { ascending: o.ascending });
+    const { data, error } = await query.range(from, from + pageSize - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as unknown[];
+    result.push(...rows);
+    if (rows.length < pageSize) break;
+    from += pageSize;
+  }
+  return result;
+}
+
 // ── Категории ───────────────────────────────────────────────────
 
 export async function fetchCategories(): Promise<Category[]> {
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .order('sort_order')
-    .order('name');
-  if (error) throw error;
-  return (data as CategoryRow[]).map(mapCategory);
+  const rows = await selectAll('categories', [
+    { column: 'sort_order', ascending: true },
+    { column: 'id', ascending: true },
+  ]);
+  return (rows as CategoryRow[]).map(mapCategory);
 }
 
 // При первом входе таблица категорий пуста — заполняем предустановленными.
+let defaultsSeeded = false;
 export async function ensureDefaultCategories(): Promise<void> {
+  if (defaultsSeeded) return;
+  defaultsSeeded = true;
   const { count, error } = await supabase
     .from('categories')
     .select('*', { count: 'exact', head: true });
@@ -133,12 +155,11 @@ export interface ExpenseInput {
 }
 
 export async function fetchExpenses(): Promise<Expense[]> {
-  const { data, error } = await supabase
-    .from('expenses')
-    .select('*')
-    .order('date', { ascending: false });
-  if (error) throw error;
-  return (data as ExpenseRow[]).map(mapExpense);
+  const rows = await selectAll('expenses', [
+    { column: 'date', ascending: false },
+    { column: 'id', ascending: false },
+  ]);
+  return (rows as ExpenseRow[]).map(mapExpense);
 }
 
 export async function createExpense(input: ExpenseInput): Promise<Expense> {
@@ -183,12 +204,11 @@ export interface IncomeInput {
 }
 
 export async function fetchIncomes(): Promise<Income[]> {
-  const { data, error } = await supabase
-    .from('incomes')
-    .select('*')
-    .order('date', { ascending: false });
-  if (error) throw error;
-  return (data as IncomeRow[]).map(mapIncome);
+  const rows = await selectAll('incomes', [
+    { column: 'date', ascending: false },
+    { column: 'id', ascending: false },
+  ]);
+  return (rows as IncomeRow[]).map(mapIncome);
 }
 
 export async function createIncome(input: IncomeInput): Promise<Income> {
@@ -217,9 +237,8 @@ export async function deleteIncome(id: string): Promise<void> {
 // ── Бюджеты ─────────────────────────────────────────────────────
 
 export async function fetchBudgets(): Promise<CategoryBudget[]> {
-  const { data, error } = await supabase.from('budgets').select('*');
-  if (error) throw error;
-  return (data as BudgetRow[]).map(mapBudget);
+  const rows = await selectAll('budgets');
+  return (rows as BudgetRow[]).map(mapBudget);
 }
 
 export async function upsertBudget(input: {

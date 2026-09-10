@@ -1,35 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { createIncome, deleteIncome, fetchIncomes, updateIncome } from '../lib/api';
 import type { Income } from '../types';
 import { addDays, formatDay, formatMoney, todayKey } from '../lib/dates';
 import IncomeForm from '../components/IncomeForm';
 import type { IncomeFormValues } from '../components/IncomeForm';
+import Modal from '../components/Modal';
+import { useCachedData } from '../hooks/useCachedData';
 
 export default function IncomePage() {
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: incomes, loading, refresh } = useCachedData<Income[]>('incomes', fetchIncomes, []);
+
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [showAll, setShowAll] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Income | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setIncomes(await fetchIncomes());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось загрузить');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const dayIncomes = useMemo(
     () => incomes.filter((i) => i.date === selectedDate),
@@ -65,7 +51,7 @@ export default function IncomePage() {
       if (editing) await updateIncome(editing.id, values);
       else await createIncome(values);
       setShowForm(false);
-      await load();
+      await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось сохранить');
     } finally {
@@ -78,7 +64,7 @@ export default function IncomePage() {
     setError(null);
     try {
       await deleteIncome(id);
-      await load();
+      await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось удалить');
     }
@@ -168,18 +154,15 @@ export default function IncomePage() {
       )}
 
       {showForm && (
-        <div className="modal-backdrop" onClick={() => setShowForm(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{editing ? 'Изменить доход' : 'Новый доход'}</h2>
-            <IncomeForm
-              initial={editing ?? undefined}
-              defaultDate={selectedDate}
-              onSubmit={handleSubmit}
-              onCancel={() => setShowForm(false)}
-              busy={busy}
-            />
-          </div>
-        </div>
+        <Modal title={editing ? 'Изменить доход' : 'Новый доход'} onClose={() => setShowForm(false)}>
+          <IncomeForm
+            initial={editing ?? undefined}
+            defaultDate={selectedDate}
+            onSubmit={handleSubmit}
+            onCancel={() => setShowForm(false)}
+            busy={busy}
+          />
+        </Modal>
       )}
     </section>
   );

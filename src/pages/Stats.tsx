@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchBudgets, fetchCategories, fetchExpenses, fetchIncomes } from '../lib/api';
 import type { Category, CategoryBudget, Expense, Income } from '../types';
 import { formatMoney } from '../lib/dates';
 import { currentMonth, currentYear, dateKey, lastDays } from '../lib/periods';
 import type { DateRange } from '../lib/periods';
+import { useCachedData } from '../hooks/useCachedData';
 
 type PeriodKey = 'week' | 'month' | 'year' | 'custom';
 type Tab = 'expenses' | 'income';
@@ -19,42 +20,21 @@ const PERIOD_LABELS: Record<PeriodKey, string> = {
 const MONTH_SHORT = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
 export default function Stats() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [budgets, setBudgets] = useState<CategoryBudget[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const cats = useCachedData<Category[]>('categories', fetchCategories, []);
+  const exps = useCachedData<Expense[]>('expenses', fetchExpenses, []);
+  const incs = useCachedData<Income[]>('incomes', fetchIncomes, []);
+  const buds = useCachedData<CategoryBudget[]>('budgets', fetchBudgets, []);
+
+  const categories = cats.data;
+  const expenses = exps.data;
+  const incomes = incs.data;
+  const budgets = buds.data;
+  const loading = cats.loading || exps.loading || incs.loading || buds.loading;
 
   const [tab, setTab] = useState<Tab>('expenses');
   const [period, setPeriod] = useState<PeriodKey>('month');
   const [customStart, setCustomStart] = useState(dateKey(new Date()));
   const [customEnd, setCustomEnd] = useState(dateKey(new Date()));
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [cats, exps, incs, buds] = await Promise.all([
-        fetchCategories(),
-        fetchExpenses(),
-        fetchIncomes(),
-        fetchBudgets(),
-      ]);
-      setCategories(cats);
-      setExpenses(exps);
-      setIncomes(incs);
-      setBudgets(buds);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось загрузить');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const range: DateRange = useMemo(() => {
     if (period === 'week') return lastDays(7);
@@ -185,8 +165,6 @@ export default function Stats() {
         </div>
       )}
 
-      {error && <div className="error">{error}</div>}
-
       <div className="stat-total card">
         <span>Итого за период</span>
         <strong>{formatMoney(total)}</strong>
@@ -254,6 +232,8 @@ export default function Stats() {
 
 function BarChart({ bars }: { bars: { label: string; value: number }[] }) {
   const max = Math.max(...bars.map((b) => b.value), 0);
+  // При большом числе столбцов (месяц, длинный диапазон) подписи разрежаем.
+  const step = bars.length > 14 ? Math.ceil(bars.length / 12) : 1;
   return (
     <div className="bar-chart">
       {bars.map((b, i) => (
@@ -264,7 +244,7 @@ function BarChart({ bars }: { bars: { label: string; value: number }[] }) {
               style={{ height: max > 0 ? `${(b.value / max) * 100}%` : '0%' }}
             />
           </div>
-          <span className="bar-label">{b.label}</span>
+          <span className="bar-label">{i % step === 0 ? b.label : ''}</span>
         </div>
       ))}
     </div>

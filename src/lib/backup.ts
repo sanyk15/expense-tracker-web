@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { fetchBudgets, fetchCategories, fetchExpenses, fetchIncomes } from './api';
+import { cacheClear } from './cache';
 
 // Импорт поддерживает два формата: экспорт iOS-приложения (без цвета категорий,
 // ISO8601-даты, budgets опционален) и собственный экспорт этого приложения.
@@ -132,6 +133,12 @@ export async function importBackup(text: string): Promise<ImportResult> {
   await insertInChunks('expenses', expenses);
   await insertInChunks('incomes', incomes);
   await insertInChunks('budgets', budgets);
+
+  // Сбрасываем кеш, чтобы не показывать устаревшие данные после импорта.
+  cacheClear('categories');
+  cacheClear('expenses');
+  cacheClear('incomes');
+  cacheClear('budgets');
 
   return {
     categories: categories.length,

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchCategories, fetchExpenses } from '../lib/api';
 import type { Category, Expense } from '../types';
 import { formatDay, formatMoney } from '../lib/dates';
 import { currentMonth, currentYear, dateKey, lastDays } from '../lib/periods';
 import type { DateRange } from '../lib/periods';
+import { useCachedData } from '../hooks/useCachedData';
 
 type PeriodKey = 'week' | 'month' | 'year' | 'custom';
 
@@ -17,28 +18,17 @@ const PERIOD_LABELS: Record<PeriodKey, string> = {
 
 export default function CategoryDetail() {
   const { id } = useParams<{ id: string }>();
-  const [category, setCategory] = useState<Category | null>(null);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cats = useCachedData<Category[]>('categories', fetchCategories, []);
+  const exps = useCachedData<Expense[]>('expenses', fetchExpenses, []);
+  const categories = cats.data;
+  const expenses = exps.data;
+  const loading = cats.loading || exps.loading;
+
   const [period, setPeriod] = useState<PeriodKey>('month');
   const [customStart, setCustomStart] = useState(dateKey(new Date()));
   const [customEnd, setCustomEnd] = useState(dateKey(new Date()));
 
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const [cats, exps] = await Promise.all([fetchCategories(), fetchExpenses()]);
-      setCategory(cats.find((c) => c.id === id) ?? null);
-      setExpenses(exps.filter((e) => e.categoryId === id));
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const category = useMemo(() => categories.find((c) => c.id === id) ?? null, [categories, id]);
 
   const range: DateRange = useMemo(() => {
     if (period === 'week') return lastDays(7);
@@ -48,8 +38,8 @@ export default function CategoryDetail() {
   }, [period, customStart, customEnd]);
 
   const filtered = useMemo(
-    () => expenses.filter((e) => e.date >= range.start && e.date <= range.end),
-    [expenses, range],
+    () => expenses.filter((e) => e.categoryId === id && e.date >= range.start && e.date <= range.end),
+    [expenses, id, range],
   );
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
@@ -75,9 +65,7 @@ export default function CategoryDetail() {
       </Link>
 
       <div className="page-header">
-        <h1>
-          {category ? `${category.icon} ${category.name}` : 'Категория'}
-        </h1>
+        <h1>{category ? `${category.icon} ${category.name}` : 'Категория'}</h1>
       </div>
 
       <div className="tabs period-tabs">

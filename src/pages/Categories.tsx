@@ -1,31 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { createCategory, deleteCategory, fetchCategories, updateCategory } from '../lib/api';
 import type { Category } from '../types';
 import CategoryForm from '../components/CategoryForm';
+import Modal from '../components/Modal';
+import { useCachedData } from '../hooks/useCachedData';
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: categories, loading, refresh } = useCachedData<Category[]>('categories', fetchCategories, []);
+
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setCategories(await fetchCategories());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось загрузить');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   function openAdd() {
     setEditing(null);
@@ -44,7 +30,7 @@ export default function CategoriesPage() {
       if (editing) await updateCategory(editing.id, values);
       else await createCategory(values);
       setShowForm(false);
-      await load();
+      await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось сохранить');
     } finally {
@@ -57,7 +43,7 @@ export default function CategoriesPage() {
     setError(null);
     try {
       await deleteCategory(c.id);
-      await load();
+      await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось удалить');
     }
@@ -69,31 +55,28 @@ export default function CategoriesPage() {
     if (idx < 0 || j < 0 || j >= categories.length) return;
     const a = categories[idx];
     const b = categories[j];
-    const next = [...categories];
-    [next[idx], next[j]] = [next[j], next[idx]];
-    setCategories(next);
     setError(null);
     try {
       await Promise.all([
         updateCategory(a.id, { sort_order: b.sortOrder }),
         updateCategory(b.id, { sort_order: a.sortOrder }),
       ]);
+      await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось изменить порядок');
-      load();
+      refresh();
     }
   }
 
   async function sortAlphabetically() {
     const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
-    const next = sorted.map((c, i) => ({ ...c, sortOrder: i }));
-    setCategories(next);
     setError(null);
     try {
-      await Promise.all(next.map((c, i) => updateCategory(c.id, { sort_order: i })));
+      await Promise.all(sorted.map((c, i) => updateCategory(c.id, { sort_order: i })));
+      await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось отсортировать');
-      load();
+      refresh();
     }
   }
 
@@ -153,17 +136,14 @@ export default function CategoriesPage() {
       </div>
 
       {showForm && (
-        <div className="modal-backdrop" onClick={() => setShowForm(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{editing ? 'Изменить категорию' : 'Новая категория'}</h2>
-            <CategoryForm
-              initial={editing ?? undefined}
-              onSubmit={handleSubmit}
-              onCancel={() => setShowForm(false)}
-              busy={busy}
-            />
-          </div>
-        </div>
+        <Modal title={editing ? 'Изменить категорию' : 'Новая категория'} onClose={() => setShowForm(false)}>
+          <CategoryForm
+            initial={editing ?? undefined}
+            onSubmit={handleSubmit}
+            onCancel={() => setShowForm(false)}
+            busy={busy}
+          />
+        </Modal>
       )}
     </section>
   );
