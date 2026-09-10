@@ -21,6 +21,15 @@
         } catch (e) {}
       })();
     </script>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem('compactList') === '1') {
+            document.documentElement.setAttribute('data-compact', 'true');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

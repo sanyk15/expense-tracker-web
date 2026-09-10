@@ -13,6 +13,7 @@ import ExpenseForm from '../components/ExpenseForm';
 import type { ExpenseFormValues } from '../components/ExpenseForm';
 import Modal from '../components/Modal';
 import { useCachedData } from '../hooks/useCachedData';
+import { haptic } from '../lib/haptics';
 
 async function fetchCategoriesWithSeed(): Promise<Category[]> {
   await ensureDefaultCategories();
@@ -46,6 +47,11 @@ export default function Expenses() {
 
   const dayTotal = dayExpenses.reduce((s, e) => s + e.amount, 0);
 
+  const monthTotal = useMemo(() => {
+    const ym = todayKey().slice(0, 7);
+    return expenses.filter((e) => e.date.startsWith(ym)).reduce((s, e) => s + e.amount, 0);
+  }, [expenses]);
+
   const groups = useMemo(() => {
     const map = new Map<string, Expense[]>();
     for (const e of expenses) {
@@ -77,6 +83,7 @@ export default function Expenses() {
       if (editing) await updateExpense(editing.id, values);
       else await createExpense(values);
       await refreshAll();
+      haptic();
       setClosing(true);
       window.setTimeout(() => {
         setShowForm(false);
@@ -95,6 +102,7 @@ export default function Expenses() {
     try {
       await deleteExpense(id);
       await refreshAll();
+      haptic();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось удалить');
     }
@@ -115,6 +123,17 @@ export default function Expenses() {
           <button className="btn-primary btn-sm" onClick={openAdd}>
             + Добавить
           </button>
+        </div>
+      </div>
+
+      <div className="summary-card">
+        <div className="summary-block">
+          <span className="summary-label">Сегодня</span>
+          <span className="summary-amount">{formatMoney(dayTotal)}</span>
+        </div>
+        <div className="summary-block">
+          <span className="summary-label">За месяц</span>
+          <span className="summary-amount">{formatMoney(monthTotal)}</span>
         </div>
       </div>
 

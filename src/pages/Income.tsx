@@ -6,6 +6,7 @@ import IncomeForm from '../components/IncomeForm';
 import type { IncomeFormValues } from '../components/IncomeForm';
 import Modal from '../components/Modal';
 import { useCachedData } from '../hooks/useCachedData';
+import { haptic } from '../lib/haptics';
 
 export default function IncomePage() {
   const { data: incomes, loading, refresh } = useCachedData<Income[]>('incomes', fetchIncomes, []);
@@ -52,6 +53,7 @@ export default function IncomePage() {
       if (editing) await updateIncome(editing.id, values);
       else await createIncome(values);
       await refresh();
+      haptic();
       setClosing(true);
       window.setTimeout(() => {
         setShowForm(false);
@@ -70,6 +72,7 @@ export default function IncomePage() {
     try {
       await deleteIncome(id);
       await refresh();
+      haptic();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось удалить');
     }

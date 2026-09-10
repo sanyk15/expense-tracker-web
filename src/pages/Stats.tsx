@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import type { TouchEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchBudgets, fetchCategories, fetchExpenses, fetchIncomes } from '../lib/api';
 import type { Category, CategoryBudget, Expense, Income } from '../types';
@@ -6,6 +7,8 @@ import { formatMoney } from '../lib/dates';
 import { currentMonth, currentYear, dateKey, lastDays } from '../lib/periods';
 import type { DateRange } from '../lib/periods';
 import { useCachedData } from '../hooks/useCachedData';
+import DonutChart from '../components/DonutChart';
+import type { DonutSegment } from '../components/DonutChart';
 
 type PeriodKey = 'week' | 'month' | 'year' | 'custom';
 type Tab = 'expenses' | 'income';
@@ -18,6 +21,11 @@ const PERIOD_LABELS: Record<PeriodKey, string> = {
 };
 
 const MONTH_SHORT = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+
+const CHART_COLORS = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#22c55e',
+  '#0ea5e9', '#ef4444', '#14b8a6', '#f97316', '#a855f7',
+];
 
 export default function Stats() {
   const cats = useCachedData<Category[]>('categories', fetchCategories, []);
@@ -35,6 +43,30 @@ export default function Stats() {
   const [period, setPeriod] = useState<PeriodKey>('month');
   const [customStart, setCustomStart] = useState(dateKey(new Date()));
   const [customEnd, setCustomEnd] = useState(dateKey(new Date()));
+  const [chartType, setChartTypeState] = useState<'bar' | 'donut'>(() =>
+    localStorage.getItem('statsChartType') === 'donut' ? 'donut' : 'bar',
+  );
+  const chartStartX = useRef<number | null>(null);
+
+  function setChartType(t: 'bar' | 'donut') {
+    localStorage.setItem('statsChartType', t);
+    setChartTypeState(t);
+  }
+
+  function onChartTouchStart(e: TouchEvent<HTMLDivElement>) {
+    e.stopPropagation();
+    chartStartX.current = e.touches[0].clientX;
+  }
+
+  function onChartTouchEnd(e: TouchEvent<HTMLDivElement>) {
+    e.stopPropagation();
+    if (chartStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - chartStartX.current;
+    chartStartX.current = null;
+    if (Math.abs(dx) > 50) {
+      setChartType(chartType === 'bar' ? 'donut' : 'bar');
+    }
+  }
 
   const range: DateRange = useMemo(() => {
     if (period === 'week') return lastDays(7);
@@ -121,6 +153,22 @@ export default function Stats() {
     return out;
   }, [tab, period, filteredExpenses, filteredIncomes, range]);
 
+  const donutSegments: DonutSegment[] = useMemo(() => {
+    if (tab === 'expenses') {
+      return expenseBreakdown.map((item, i) => ({
+        label: item.category?.name ?? 'Без категории',
+        value: item.amount,
+        color: item.category?.color ?? CHART_COLORS[i % CHART_COLORS.length],
+        icon: item.category?.icon,
+      }));
+    }
+    return incomeBreakdown.map((item, i) => ({
+      label: item.label,
+      value: item.amount,
+      color: CHART_COLORS[i % CHART_COLORS.length],
+    }));
+  }, [tab, expenseBreakdown, incomeBreakdown]);
+
   if (loading) {
     return <div className="splash">Загрузка…</div>;
   }
@@ -173,8 +221,22 @@ export default function Stats() {
         <strong>{formatMoney(total)}</strong>
       </div>
 
-      <div className="card chart-card">
-        <BarChart bars={bars} />
+      <div
+        className="card chart-card chart-swipe"
+        onTouchStart={onChartTouchStart}
+        onTouchEnd={onChartTouchEnd}
+      >
+        {chartType === 'bar' ? <BarChart bars={bars} /> : <DonutChart segments={donutSegments} />}
+        <div className="chart-dots">
+          <span
+            className={`chart-dot${chartType === 'bar' ? ' active' : ''}`}
+            onClick={() => setChartType('bar')}
+          />
+          <span
+            className={`chart-dot${chartType === 'donut' ? ' active' : ''}`}
+            onClick={() => setChartType('donut')}
+          />
+        </div>
       </div>
 
       <div className="breakdown">

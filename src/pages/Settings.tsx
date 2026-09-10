@@ -22,6 +22,15 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [compact, setCompact] = useState(() => localStorage.getItem('compactList') === '1');
+
+  function toggleCompact() {
+    const next = !compact;
+    setCompact(next);
+    localStorage.setItem('compactList', next ? '1' : '0');
+    if (next) document.documentElement.setAttribute('data-compact', 'true');
+    else document.documentElement.removeAttribute('data-compact');
+  }
 
   async function refreshCounts() {
     try {
@@ -89,6 +98,13 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="settings-section card">
+        <h2>Вид</h2>
+        <button className="btn-ghost" onClick={toggleCompact}>
+          Компактный список: {compact ? 'вкл' : 'выкл'}
+        </button>
       </div>
 
       <div className="settings-section card">
