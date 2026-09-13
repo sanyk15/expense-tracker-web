@@ -1,9 +1,10 @@
 import { useLayoutEffect, useRef } from 'react';
-import type { TouchEvent } from 'react';
+import type { ReactNode, TouchEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { emitAdd } from '../lib/addEvent';
 import { haptic } from '../lib/haptics';
+import { useScrollRestore } from '../hooks/useScrollRestore';
 import Expenses from './Expenses';
 import Income from './Income';
 import Stats from './Stats';
@@ -20,9 +21,6 @@ const TABS = [
 
 const PAGES = [Expenses, Income, Stats, Budgets, Categories];
 
-const LEFT_TABS = TABS.slice(0, 2);
-const RIGHT_TABS = TABS.slice(2);
-
 function renderTab(tab: { to: string; label: string; icon: string }) {
   return (
     <NavLink
@@ -36,6 +34,15 @@ function renderTab(tab: { to: string; label: string; icon: string }) {
   );
 }
 
+function CarouselPage({ route, children }: { route: string; children: ReactNode }) {
+  const ref = useScrollRestore(`page:${route}`);
+  return (
+    <div className="carousel-page" ref={ref}>
+      {children}
+    </div>
+  );
+}
+
 export default function Layout() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -43,6 +50,7 @@ export default function Layout() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef<number | null>(null);
   const dragOffsetRef = useRef(0);
+  const detailRef = useScrollRestore(`detail:${location.pathname}`);
 
   const currentIndex = TABS.findIndex((t) => location.pathname === t.to);
   const isTab = currentIndex >= 0;
@@ -119,25 +127,24 @@ export default function Layout() {
           >
             <div className="carousel" ref={carouselRef}>
               {PAGES.map((Page, i) => (
-                <div className="carousel-page" key={i}>
+                <CarouselPage key={TABS[i].to} route={TABS[i].to}>
                   <Page />
-                </div>
+                </CarouselPage>
               ))}
             </div>
           </div>
         ) : (
-          <div className="detail-content">
+          <div className="detail-content" ref={detailRef}>
             <Outlet />
           </div>
         )}
       </main>
 
       <nav className="tabbar">
-        <div className="tab-group">{LEFT_TABS.map(renderTab)}</div>
+        <div className="tab-group">{TABS.map(renderTab)}</div>
         <button className="add-bump" onClick={handleAdd} aria-label="Добавить">
           <span className="add-bump-circle">+</span>
         </button>
-        <div className="tab-group">{RIGHT_TABS.map(renderTab)}</div>
       </nav>
     </div>
   );

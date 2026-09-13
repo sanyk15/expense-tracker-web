@@ -7,6 +7,7 @@ import { formatMoney } from '../lib/dates';
 import { currentMonth, currentYear, dateKey, lastDays } from '../lib/periods';
 import type { DateRange } from '../lib/periods';
 import { useCachedData } from '../hooks/useCachedData';
+import { usePersistentState } from '../hooks/usePersistentState';
 import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
 import DonutChart from '../components/DonutChart';
 import type { DonutSegment } from '../components/DonutChart';
@@ -40,10 +41,10 @@ export default function Stats() {
   const budgets = buds.data;
   const loading = cats.loading || exps.loading || incs.loading || buds.loading;
 
-  const [tab, setTab] = useState<Tab>('expenses');
-  const [period, setPeriod] = useState<PeriodKey>('month');
-  const [customStart, setCustomStart] = useState(dateKey(new Date()));
-  const [customEnd, setCustomEnd] = useState(dateKey(new Date()));
+  const [tab, setTab] = usePersistentState<Tab>('statsTab', 'expenses');
+  const [period, setPeriod] = usePersistentState<PeriodKey>('statsPeriod', 'month');
+  const [customStart, setCustomStart] = usePersistentState<string>('statsCustomStart', dateKey(new Date()));
+  const [customEnd, setCustomEnd] = usePersistentState<string>('statsCustomEnd', dateKey(new Date()));
   const [chartType, setChartTypeState] = useState<'bar' | 'donut'>(() =>
     localStorage.getItem('statsChartType') === 'donut' ? 'donut' : 'bar',
   );

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchCategories, fetchExpenses } from '../lib/api';
 import type { Category, Expense } from '../types';
@@ -6,6 +6,7 @@ import { formatDay, formatMoney } from '../lib/dates';
 import { currentMonth, currentYear, dateKey, lastDays } from '../lib/periods';
 import type { DateRange } from '../lib/periods';
 import { useCachedData } from '../hooks/useCachedData';
+import { usePersistentState } from '../hooks/usePersistentState';
 
 type PeriodKey = 'week' | 'month' | 'year' | 'custom';
 
@@ -24,9 +25,9 @@ export default function CategoryDetail() {
   const expenses = exps.data;
   const loading = cats.loading || exps.loading;
 
-  const [period, setPeriod] = useState<PeriodKey>('month');
-  const [customStart, setCustomStart] = useState(dateKey(new Date()));
-  const [customEnd, setCustomEnd] = useState(dateKey(new Date()));
+  const [period, setPeriod] = usePersistentState<PeriodKey>('statsPeriod', 'month');
+  const [customStart, setCustomStart] = usePersistentState<string>('statsCustomStart', dateKey(new Date()));
+  const [customEnd, setCustomEnd] = usePersistentState<string>('statsCustomEnd', dateKey(new Date()));
 
   const category = useMemo(() => categories.find((c) => c.id === id) ?? null, [categories, id]);
 

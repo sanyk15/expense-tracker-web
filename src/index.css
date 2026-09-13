@@ -142,6 +142,7 @@ h1 {
 /* ── Панель вкладок ─────────────────────────────────── */
 
 .tabbar {
+  position: relative;
   display: flex;
   align-items: stretch;
   background: var(--surface);
@@ -156,22 +157,41 @@ h1 {
   justify-content: space-around;
 }
 
+/* Центральная кнопка «+»: вынесена из потока вкладок, приподнята над навбаром */
 .add-bump {
-  flex: 0 0 56px;
+  position: absolute;
+  left: 50%;
+  top: -54px;
+  transform: translateX(-50%);
+  width: 54px;
+  height: 54px;
   border: none;
   background: none;
   padding: 0;
   cursor: pointer;
-  position: relative;
-  z-index: 5;
-  display: flex;
-  justify-content: center;
+  z-index: 6;
+}
+
+/* Выпуклость («прыщ») на навбаре, на которой сидит кнопка */
+.add-bump::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  width: 132px;
+  height: 48px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
 }
 
 .add-bump-circle {
+  position: relative;
+  z-index: 1;
   width: 54px;
   height: 54px;
-  margin-top: -24px;
   border-radius: 50%;
   background: var(--accent-gradient);
   color: #fff;
