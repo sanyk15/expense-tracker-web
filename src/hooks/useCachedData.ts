@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { cacheGet, cacheSet } from '../lib/cache';
+import { cacheGet, cachePeek, cacheSet, onCacheChange } from '../lib/cache';
 
 // Загружает данные: мгновенно отдаёт закешированное значение (без спиннера),
 // затем в фоне обновляет с сервера и перезаписывает кеш.
+// Подписывается на изменения кеша: если другая страница обновила тот же ключ,
+// перечитывает значение — статистика и бюджеты не отстают от ввода.
 export function useCachedData<T>(cacheKey: string, fetcher: () => Promise<T>, empty: T) {
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
@@ -23,6 +25,13 @@ export function useCachedData<T>(cacheKey: string, fetcher: () => Promise<T>, em
       setLoading(false);
     }
   }, [cacheKey]);
+
+  useEffect(() => {
+    return onCacheChange(cacheKey, () => {
+      setData(cachePeek<T>(cacheKey) ?? empty);
+      setLoading(false);
+    });
+  }, [cacheKey, empty]);
 
   useEffect(() => {
     refresh();

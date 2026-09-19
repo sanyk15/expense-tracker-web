@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode, TouchEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useDesign } from '../context/DesignContext';
 import { emitAdd } from '../lib/addEvent';
 import { haptic } from '../lib/haptics';
 import { useScrollRestore } from '../hooks/useScrollRestore';
@@ -20,6 +21,14 @@ const TABS = [
 ];
 
 const PAGES = [Expenses, Income, Stats, Budgets, Categories];
+
+function todayLabel(): string {
+  return new Intl.DateTimeFormat('ru-RU', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date());
+}
 
 function renderTab(tab: { to: string; label: string; icon: string }) {
   return (
@@ -45,6 +54,7 @@ function CarouselPage({ route, children }: { route: string; children: ReactNode 
 
 export default function Layout() {
   const { signOut } = useAuth();
+  const { v2 } = useDesign();
   const navigate = useNavigate();
   const location = useLocation();
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -106,7 +116,14 @@ export default function Layout() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <span className="app-title">Финансы</span>
+        {v2 ? (
+          <div className="v2-brand">
+            <span className="v2-brand-title">Финансы</span>
+            <span className="v2-brand-date">{todayLabel()}</span>
+          </div>
+        ) : (
+          <span className="app-title">Финансы</span>
+        )}
         <div className="topbar-right">
           <Link to="/settings" className="icon-btn" aria-label="Настройки">
             ⚙️

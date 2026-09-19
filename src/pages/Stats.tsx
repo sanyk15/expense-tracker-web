@@ -8,6 +8,7 @@ import { currentMonth, currentYear, dateKey, lastDays } from '../lib/periods';
 import type { DateRange } from '../lib/periods';
 import { useCachedData } from '../hooks/useCachedData';
 import { usePersistentState } from '../hooks/usePersistentState';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
 import DonutChart from '../components/DonutChart';
 import type { DonutSegment } from '../components/DonutChart';
@@ -40,6 +41,10 @@ export default function Stats() {
   const incomes = incs.data;
   const budgets = buds.data;
   const loading = cats.loading || exps.loading || incs.loading || buds.loading;
+
+  const { ref, pull, refreshing } = usePullToRefresh(() =>
+    Promise.all([cats.refresh(), exps.refresh(), incs.refresh(), buds.refresh()]),
+  );
 
   const [tab, setTab] = usePersistentState<Tab>('statsTab', 'expenses');
   const [period, setPeriod] = usePersistentState<PeriodKey>('statsPeriod', 'month');
@@ -216,7 +221,14 @@ export default function Stats() {
   }
 
   return (
-    <section>
+    <section ref={ref}>
+      <div
+        className={`ptr${refreshing ? ' refreshing' : ''}`}
+        style={{ height: refreshing ? 44 : pull, opacity: refreshing ? 1 : Math.min(1, pull / 50) }}
+      >
+        <div className="spinner-ring" />
+      </div>
+
       <div className="page-header">
         <h1>Статистика</h1>
       </div>

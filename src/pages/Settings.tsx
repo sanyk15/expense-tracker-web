@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useDesign } from '../context/DesignContext';
 import { buildExport, downloadExport, importBackup } from '../lib/backup';
 import { fetchBudgets, fetchCategories, fetchExpenses, fetchIncomes } from '../lib/api';
 
@@ -18,6 +19,7 @@ const THEME_LABELS: Record<'light' | 'dark' | 'system', string> = {
 
 export default function SettingsPage() {
   const { preference, setPreference } = useTheme();
+  const { v2, toggle } = useDesign();
   const [counts, setCounts] = useState<Counts | null>(null);
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -102,9 +104,14 @@ export default function SettingsPage() {
 
       <div className="settings-section card">
         <h2>Вид</h2>
-        <button className="btn-ghost" onClick={toggleCompact}>
-          Компактный список: {compact ? 'вкл' : 'выкл'}
-        </button>
+        <div className="settings-actions">
+          <button className="btn-ghost" onClick={toggleCompact}>
+            Компактный список: {compact ? 'вкл' : 'выкл'}
+          </button>
+          <button className="btn-ghost" onClick={toggle}>
+            Новый дизайн: {v2 ? 'вкл' : 'выкл'}
+          </button>
+        </div>
       </div>
 
       <div className="settings-section card">

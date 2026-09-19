@@ -1,5 +1,6 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
+import { DesignProvider } from './context/DesignContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Layout from './pages/Layout';
@@ -29,23 +30,25 @@ function Root() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <HashRouter>
-          <Routes>
-            <Route path="/" element={<Root />}>
-              <Route index element={<Navigate to="/expenses" replace />} />
-              <Route path="expenses" element={<Expenses />} />
-              <Route path="income" element={<Income />} />
-              <Route path="stats" element={<Stats />} />
-              <Route path="budgets" element={<Budgets />} />
-              <Route path="categories" element={<Categories />} />
-              <Route path="category/:id" element={<CategoryDetail />} />
-              <Route path="income-source/:name" element={<IncomeSourceDetail />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-          </Routes>
-        </HashRouter>
-      </AuthProvider>
+      <DesignProvider>
+        <AuthProvider>
+          <HashRouter>
+            <Routes>
+              <Route path="/" element={<Root />}>
+                <Route index element={<Navigate to="/expenses" replace />} />
+                <Route path="expenses" element={<Expenses />} />
+                <Route path="income" element={<Income />} />
+                <Route path="stats" element={<Stats />} />
+                <Route path="budgets" element={<Budgets />} />
+                <Route path="categories" element={<Categories />} />
+                <Route path="category/:id" element={<CategoryDetail />} />
+                <Route path="income-source/:name" element={<IncomeSourceDetail />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
+            </Routes>
+          </HashRouter>
+        </AuthProvider>
+      </DesignProvider>
     </ThemeProvider>
   );
 }

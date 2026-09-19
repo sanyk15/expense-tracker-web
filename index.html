@@ -30,6 +30,23 @@
         } catch (e) {}
       })();
     </script>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem('design') === 'v2') {
+            document.documentElement.setAttribute('data-design', 'v2');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <script>
+      (function () {
+        // Фиксируем окно: запрещаем пинч-зум на iOS (жест gesturestart).
+        document.addEventListener('gesturestart', function (e) {
+          e.preventDefault();
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

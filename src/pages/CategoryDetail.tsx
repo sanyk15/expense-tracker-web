@@ -7,6 +7,7 @@ import { currentMonth, currentYear, dateKey, lastDays } from '../lib/periods';
 import type { DateRange } from '../lib/periods';
 import { useCachedData } from '../hooks/useCachedData';
 import { usePersistentState } from '../hooks/usePersistentState';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 
 type PeriodKey = 'week' | 'month' | 'year' | 'custom';
 
@@ -24,6 +25,10 @@ export default function CategoryDetail() {
   const categories = cats.data;
   const expenses = exps.data;
   const loading = cats.loading || exps.loading;
+
+  const { ref, pull, refreshing } = usePullToRefresh(() =>
+    Promise.all([cats.refresh(), exps.refresh()]),
+  );
 
   const [period, setPeriod] = usePersistentState<PeriodKey>('statsPeriod', 'month');
   const [customStart, setCustomStart] = usePersistentState<string>('statsCustomStart', dateKey(new Date()));
@@ -60,7 +65,14 @@ export default function CategoryDetail() {
   }
 
   return (
-    <section>
+    <section ref={ref}>
+      <div
+        className={`ptr${refreshing ? ' refreshing' : ''}`}
+        style={{ height: refreshing ? 44 : pull, opacity: refreshing ? 1 : Math.min(1, pull / 50) }}
+      >
+        <div className="spinner-ring" />
+      </div>
+
       <Link to="/stats" className="back-link">
         ← Статистика
       </Link>

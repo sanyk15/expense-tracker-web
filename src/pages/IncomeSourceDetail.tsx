@@ -7,6 +7,7 @@ import { currentMonth, currentYear, dateKey, lastDays } from '../lib/periods';
 import type { DateRange } from '../lib/periods';
 import { useCachedData } from '../hooks/useCachedData';
 import { usePersistentState } from '../hooks/usePersistentState';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 
 type PeriodKey = 'week' | 'month' | 'year' | 'custom';
 
@@ -20,11 +21,13 @@ const PERIOD_LABELS: Record<PeriodKey, string> = {
 export default function IncomeSourceDetail() {
   const { name } = useParams<{ name: string }>();
   const sourceKey = useMemo(() => decodeURIComponent(name ?? ''), [name]);
-  const { data: incomes, loading } = useCachedData<Income[]>('incomes', fetchIncomes, []);
+  const { data: incomes, loading, refresh } = useCachedData<Income[]>('incomes', fetchIncomes, []);
 
   const [period, setPeriod] = usePersistentState<PeriodKey>('statsPeriod', 'month');
   const [customStart, setCustomStart] = usePersistentState<string>('statsCustomStart', dateKey(new Date()));
   const [customEnd, setCustomEnd] = usePersistentState<string>('statsCustomEnd', dateKey(new Date()));
+
+  const { ref, pull, refreshing } = usePullToRefresh(refresh);
 
   const range: DateRange = useMemo(() => {
     if (period === 'week') return lastDays(7);
@@ -65,7 +68,14 @@ export default function IncomeSourceDetail() {
   }
 
   return (
-    <section>
+    <section ref={ref}>
+      <div
+        className={`ptr${refreshing ? ' refreshing' : ''}`}
+        style={{ height: refreshing ? 44 : pull, opacity: refreshing ? 1 : Math.min(1, pull / 50) }}
+      >
+        <div className="spinner-ring" />
+      </div>
+
       <Link to="/stats" className="back-link">
         ← Статистика
       </Link>

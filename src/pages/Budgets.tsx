@@ -6,6 +6,7 @@ import { addMonths, currentYearMonth, monthLabel } from '../lib/periods';
 import type { YearMonth } from '../lib/periods';
 import BudgetForm from '../components/BudgetForm';
 import { useCachedData } from '../hooks/useCachedData';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 
 export default function BudgetsPage() {
   const cats = useCachedData<Category[]>('categories', fetchCategories, []);
@@ -16,6 +17,10 @@ export default function BudgetsPage() {
   const expenses = exps.data;
   const budgets = buds.data;
   const loading = cats.loading || exps.loading || buds.loading;
+
+  const { ref, pull, refreshing } = usePullToRefresh(() =>
+    Promise.all([cats.refresh(), exps.refresh(), buds.refresh()]),
+  );
 
   const [ym, setYm] = useState<YearMonth>(currentYearMonth());
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +63,14 @@ export default function BudgetsPage() {
   }
 
   return (
-    <section>
+    <section ref={ref}>
+      <div
+        className={`ptr${refreshing ? ' refreshing' : ''}`}
+        style={{ height: refreshing ? 44 : pull, opacity: refreshing ? 1 : Math.min(1, pull / 50) }}
+      >
+        <div className="spinner-ring" />
+      </div>
+
       <div className="page-header">
         <h1>Лимиты</h1>
       </div>

@@ -44,14 +44,17 @@ html,
 body,
 #root {
   height: 100%;
+  overscroll-behavior: none;
 }
 
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  touch-action: manipulation;
+  touch-action: pan-x pan-y;
   -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 h1 {
@@ -136,6 +139,7 @@ h1 {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: 16px;
 }
 
@@ -1418,4 +1422,185 @@ select:focus {
   to {
     background-position: -200% 0;
   }
+}
+
+/* ── Новый дизайн (v2): финтех-скин ─────────────────────── */
+/* Включается в настройках. Поверх текущей темы (light/dark) меняет
+   акцентную палитру, скругления, тени и отдельные компоненты. */
+
+:root[data-design='v2'] {
+  --accent: #4135f4;
+  --accent-hover: #2e2be9;
+  --accent-gradient: linear-gradient(135deg, #4d6dff 0%, #4132ed 52%, #2e2be9 100%);
+  --accent-bg: rgba(65, 53, 244, 0.10);
+  --radius: 24px;
+  --border: #ececf2;
+  --shadow: 0 10px 30px rgba(33, 37, 79, 0.08);
+  --danger: #d85058;
+  --danger-bg: #fdecee;
+  --success: #38a95a;
+}
+
+:root[data-design='v2'][data-theme='dark'] {
+  --accent: #7d86ff;
+  --accent-hover: #5b62ff;
+  --accent-gradient: linear-gradient(135deg, #7d86ff 0%, #5b62ff 55%, #4d55ff 100%);
+  --accent-bg: rgba(125, 134, 255, 0.16);
+  --border: #2a2e3a;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --danger: #f87171;
+  --danger-bg: #2b1b1b;
+  --success: #4ade80;
+}
+
+/* Лёгкое свечение фона */
+:root[data-design='v2'] body {
+  background:
+    radial-gradient(circle at top right, rgba(96, 100, 255, 0.08), transparent 34%),
+    var(--bg);
+}
+
+/* Шапка — прозрачная, «парящая» над страницей */
+:root[data-design='v2'] .topbar {
+  background: transparent;
+  border-bottom: none;
+  padding: 18px 18px 6px;
+}
+
+.v2-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.v2-brand-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.v2-brand-date {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+:root[data-design='v2'] .topbar .icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 17px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+/* Сводная карточка — hero-блок с декоративными кольцами */
+:root[data-design='v2'] .summary-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 22px;
+  box-shadow: 0 18px 35px rgba(59, 55, 239, 0.23);
+}
+
+:root[data-design='v2'] .summary-card::before,
+:root[data-design='v2'] .summary-card::after {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  content: '';
+  pointer-events: none;
+}
+
+:root[data-design='v2'] .summary-card::before {
+  top: -70px;
+  right: -60px;
+  width: 170px;
+  height: 170px;
+}
+
+:root[data-design='v2'] .summary-card::after {
+  right: -50px;
+  bottom: -120px;
+  width: 230px;
+  height: 230px;
+}
+
+:root[data-design='v2'] .summary-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Строки — крупнее скругление и мягкая тень */
+:root[data-design='v2'] .expense-row,
+:root[data-design='v2'] .breakdown-row,
+:root[data-design='v2'] .budget-row,
+:root[data-design='v2'] .category-row {
+  border-radius: 18px;
+  box-shadow: 0 5px 16px rgba(33, 37, 79, 0.05);
+}
+
+/* Нижняя навигация — плавающая «пилюля» */
+:root[data-design='v2'] .tabbar {
+  margin: 0 14px calc(12px + env(safe-area-inset-bottom));
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 12px 32px rgba(32, 36, 72, 0.12);
+}
+
+:root[data-design='v2'][data-theme='dark'] .tabbar {
+  background: rgba(26, 29, 36, 0.92);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* Плавающая кнопка «+» без «прыща» */
+:root[data-design='v2'] .add-bump {
+  top: -48px;
+}
+
+:root[data-design='v2'] .add-bump::before {
+  display: none;
+}
+
+/* Даём списку место, чтобы последний пункт не прятался под «+» */
+:root[data-design='v2'] .carousel-page,
+:root[data-design='v2'] .detail-content {
+  padding-bottom: 76px;
+}
+
+/* Активная вкладка — «залитая» плашка с иконкой */
+:root[data-design='v2'] .tab-icon {
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+:root[data-design='v2'] .tab.active .tab-icon {
+  background: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(65, 53, 244, 0.32);
+}
+
+:root[data-design='v2'][data-theme='dark'] .tab.active .tab-icon {
+  box-shadow: 0 4px 12px rgba(125, 134, 255, 0.32);
+}
+
+/* Пилюли и кнопки — градиентный акцент */
+:root[data-design='v2'] .tab-pill.active {
+  background: var(--accent-gradient);
+  border-color: transparent;
+}
+
+:root[data-design='v2'] .btn-primary {
+  box-shadow: 0 6px 16px rgba(65, 53, 244, 0.30);
+}
+
+:root[data-design='v2'] .add-bump-circle {
+  width: 58px;
+  height: 58px;
+  font-size: 32px;
+  box-shadow: 0 10px 24px rgba(65, 53, 244, 0.45);
 }

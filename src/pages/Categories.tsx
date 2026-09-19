@@ -6,6 +6,7 @@ import CategoryForm from '../components/CategoryForm';
 import Modal from '../components/Modal';
 import { useCachedData } from '../hooks/useCachedData';
 import { useAddShortcut } from '../hooks/useAddShortcut';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { haptic } from '../lib/haptics';
 
 export default function CategoriesPage() {
@@ -19,6 +20,8 @@ export default function CategoriesPage() {
   const [order, setOrder] = useState<Category[]>(categories);
   const orderRef = useRef<Category[]>(categories);
   const movedRef = useRef(false);
+
+  const { ref, pull, refreshing } = usePullToRefresh(refresh);
 
   useEffect(() => {
     setOrder(categories);
@@ -119,7 +122,14 @@ export default function CategoriesPage() {
   }
 
   return (
-    <section>
+    <section ref={ref}>
+      <div
+        className={`ptr${refreshing ? ' refreshing' : ''}`}
+        style={{ height: refreshing ? 44 : pull, opacity: refreshing ? 1 : Math.min(1, pull / 50) }}
+      >
+        <div className="spinner-ring" />
+      </div>
+
       <div className="page-header">
         <h1>Категории</h1>
       </div>
